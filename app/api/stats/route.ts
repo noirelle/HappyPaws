@@ -23,15 +23,26 @@ export async function GET(request: Request) {
     // Recent activity
     const { data: recentActivity } = await supabase
         .from('bookings')
-        .select('*')
+        .select('*, vets(name)')
         .order('created_at', { ascending: false })
         .limit(5);
+
+    // Total clients (distinct emails)
+    const { count: totalClients } = await supabase
+        .from('bookings')
+        .select('email', { count: 'exact', head: true });
+
+    // Active vets
+    const { count: activeVets } = await supabase
+        .from('vets')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'Available');
 
     return NextResponse.json({
         upcomingCount,
         pendingCount,
-        totalClients: 1450, // Mock for now
-        activeVets: 4,      // Mock for now
+        totalClients: totalClients || 0,
+        activeVets: activeVets || 0,
         recentActivity
     });
 }

@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { login, signup, loginWithGoogle } from './actions';
 import { useRouter } from 'next/navigation';
+import { Loader2 } from 'lucide-react';
 
 export default function LoginPage() {
     const router = useRouter();
@@ -76,8 +77,9 @@ export default function LoginPage() {
                     <button
                         type="submit"
                         disabled={loading}
-                        className="w-full bg-primary text-white py-2.5 rounded-lg font-semibold hover:bg-blue-600 transition-colors disabled:opacity-70 flex justify-center"
+                        className="w-full bg-primary text-white py-2.5 rounded-lg font-semibold hover:bg-blue-600 transition-colors disabled:opacity-70 flex items-center justify-center gap-2"
                     >
+                        {loading && <Loader2 className="w-4 h-4 animate-spin" />}
                         {loading ? 'Processing...' : (isLogin ? 'Sign In' : 'Sign Up')}
                     </button>
                 </form>

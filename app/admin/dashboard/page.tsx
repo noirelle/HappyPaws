@@ -34,22 +34,11 @@ export default function DashboardPage() {
     }, []);
 
     if (loading) {
-        return (
-            <div className="flex h-[50vh] items-center justify-center">
-                <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-            </div>
-        );
+        return <DashboardSkeleton />;
     }
 
     return (
-        <div className="space-y-8 animate-in fade-in duration-500">
-            <div className="mb-8 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
-                <div>
-                    <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">Hello, Dr. Admin!</h1>
-                    <p className="text-gray-500 mt-1 max-w-md">Here is what is happening with your clinic today.</p>
-                </div>
-            </div>
-
+        <div className="space-y-8">
             {/* Summary Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {[
@@ -130,7 +119,8 @@ export default function DashboardPage() {
                                 </th>
                                 <th className="px-6 py-4">Pet / Owner</th>
                                 <th className="px-6 py-4">Service</th>
-                                <th className="px-6 py-4">Status</th>
+                                <th className="px-6 py-4 text-center">Status</th>
+                                <th className="px-6 py-4">Specialist</th>
                                 <th className="px-6 py-4">Date & Time</th>
                             </tr>
                         </thead>
@@ -145,12 +135,20 @@ export default function DashboardPage() {
                                         <div className="text-xs text-gray-400 mt-0.5">{row.owner_name}</div>
                                     </td>
                                     <td className="px-6 py-5 text-gray-700">{row.visit_reason}</td>
-                                    <td className="px-6 py-5">
+                                    <td className="px-6 py-5 text-center">
                                         <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold border border-transparent 
                                 ${row.status === 'pending' ? 'bg-blue-50 text-blue-600' :
                                                 row.status === 'confirmed' ? 'bg-green-50 text-green-600' : 'bg-gray-50 text-gray-600'}`}>
                                             {row.status}
                                         </span>
+                                    </td>
+                                    <td className="px-6 py-5">
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-7 h-7 rounded-lg bg-gray-100 flex items-center justify-center text-[10px] font-bold text-gray-400">
+                                                {row.vets?.name?.split(' ').map((n: string) => n[0]).join('') || 'Vet'}
+                                            </div>
+                                            <span className="font-medium text-gray-700">{row.vets?.name || 'Unassigned'}</span>
+                                        </div>
                                     </td>
                                     <td className="px-6 py-5">
                                         <div className="font-medium text-gray-900">{row.preferred_date}</div>
@@ -160,13 +158,50 @@ export default function DashboardPage() {
                             ))}
                             {(!stats.recentActivity || stats.recentActivity.length === 0) && (
                                 <tr>
-                                    <td colSpan={5} className="px-6 py-10 text-center text-gray-500">
+                                    <td colSpan={6} className="px-6 py-10 text-center text-gray-500">
                                         No recent activity found.
                                     </td>
                                 </tr>
                             )}
                         </tbody>
                     </table>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+function DashboardSkeleton() {
+    return (
+        <div className="space-y-8 animate-pulse">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {[1, 2, 3].map(i => (
+                    <div key={i} className="bg-white p-6 rounded-2xl border border-gray-100 h-32 flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-full bg-gray-100"></div>
+                        <div className="space-y-2 flex-1">
+                            <div className="h-4 bg-gray-100 rounded w-1/2"></div>
+                            <div className="h-8 bg-gray-100 rounded w-1/4"></div>
+                        </div>
+                    </div>
+                ))}
+            </div>
+
+            <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+                <div className="h-14 bg-gray-50/50 border-b border-gray-100 px-6 flex items-center gap-8">
+                    {[1, 2, 3].map(i => <div key={i} className="h-4 bg-gray-100 rounded w-20"></div>)}
+                </div>
+                <div className="p-8 space-y-6">
+                    <div className="h-10 bg-gray-50 rounded-lg w-full max-w-md"></div>
+                    <div className="space-y-4">
+                        {[1, 2, 3, 4, 5].map(i => (
+                            <div key={i} className="flex gap-4 p-4 border-b border-gray-50 last:border-0">
+                                <div className="h-4 bg-gray-100 rounded flex-1"></div>
+                                <div className="h-4 bg-gray-100 rounded flex-1"></div>
+                                <div className="h-4 bg-gray-100 rounded w-20"></div>
+                                <div className="h-4 bg-gray-100 rounded flex-1"></div>
+                            </div>
+                        ))}
+                    </div>
                 </div>
             </div>
         </div>

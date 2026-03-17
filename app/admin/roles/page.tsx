@@ -61,13 +61,14 @@ export default function RolesPage() {
         }));
     };
 
+    if (loading && roles.length === 0) {
+        return <RolesSkeleton />;
+    }
+
     return (
-        <div className="space-y-8 animate-in fade-in duration-500">
+        <div className="space-y-8">
             <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
-                <div>
-                    <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">Role Management</h1>
-                    <p className="text-gray-500 mt-1">Define roles and access permissions.</p>
-                </div>
+                <div className="flex-1" />
                 <button
                     onClick={() => setShowAddForm(!showAddForm)}
                     className="bg-gray-900 text-white px-5 py-2.5 rounded-lg font-semibold shadow-lg hover:bg-gray-800 transition-all text-sm flex items-center gap-2"
@@ -141,6 +142,35 @@ export default function RolesPage() {
                                 ) : (
                                     <span className="text-sm text-gray-400 italic">No permissions set</span>
                                 )}
+                            </div>
+                        </div>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+}
+
+function RolesSkeleton() {
+    return (
+        <div className="space-y-8 animate-pulse">
+            <div className="flex justify-end pt-2">
+                <div className="h-10 bg-gray-900 rounded-lg w-32"></div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                {[1, 2, 3].map(i => (
+                    <div key={i} className="bg-white rounded-2xl p-6 border border-gray-100 h-48 flex flex-col">
+                        <div className="flex justify-between items-start mb-4">
+                            <div className="h-6 bg-gray-100 rounded w-1/3"></div>
+                            <div className="w-10 h-10 rounded-lg bg-gray-50"></div>
+                        </div>
+                        <div className="space-y-3 flex-1">
+                            <div className="h-3 bg-gray-50 rounded w-20"></div>
+                            <div className="flex flex-wrap gap-2">
+                                {[1, 2, 3, 4].map(j => (
+                                    <div key={j} className="h-6 bg-gray-100 rounded-md w-24"></div>
+                                ))}
                             </div>
                         </div>
                     </div>

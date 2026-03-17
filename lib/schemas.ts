@@ -16,6 +16,7 @@ export const bookingSchema = z.object({
     preferredDate: z.string().min(1, "Date is required"),
     preferredTime: z.string().min(1, "Time is required"),
     status: z.enum(['pending', 'confirmed', 'cancelled']).default('pending'),
+    vet_id: z.number().nullable().optional(),
 });
 
 export const vetSchema = z.object({

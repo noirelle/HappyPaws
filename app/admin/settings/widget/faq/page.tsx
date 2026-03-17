@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Plus, Pencil, Trash2, X } from 'lucide-react';
+import ConfirmationModal from '../../../../components/ui/ConfirmationModal';
 
 
 type FAQ = {
@@ -19,6 +20,8 @@ export default function WidgetPage() {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [currentFaq, setCurrentFaq] = useState<Partial<FAQ>>({});
     const [saving, setSaving] = useState(false);
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [faqToDelete, setFaqToDelete] = useState<string | null>(null);
 
     useEffect(() => {
         fetchFaqs();
@@ -66,17 +69,25 @@ export default function WidgetPage() {
         }
     };
 
-    const handleDelete = async (id: string) => {
-        if (!confirm('Are you sure you want to delete this FAQ?')) return;
+    const handleDeleteClick = (id: string) => {
+        setFaqToDelete(id);
+        setIsDeleteModalOpen(true);
+    };
+
+    const handleConfirmDelete = async () => {
+        if (!faqToDelete) return;
         try {
-            const res = await fetch(`/api/widget/faqs?id=${id}`, {
+            const res = await fetch(`/api/widget/faqs?id=${faqToDelete}`, {
                 method: 'DELETE',
             });
             if (res.ok) {
-                setFaqs(faqs.filter(f => f.id !== id));
+                setFaqs(faqs.filter(f => f.id !== faqToDelete));
             }
         } catch (error) {
             console.error('Error deleting FAQ:', error);
+        } finally {
+            setIsDeleteModalOpen(false);
+            setFaqToDelete(null);
         }
     };
 
@@ -85,21 +96,9 @@ export default function WidgetPage() {
         setIsModalOpen(true);
     };
 
-    if (loading) {
-        return (
-            <div className="flex h-[50vh] items-center justify-center">
-                <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-            </div>
-        );
-    }
-
     return (
         <div className="space-y-8 animate-in fade-in duration-500">
-            <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
-                <div>
-                    <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">Widget Management</h1>
-                    <p className="text-gray-500 mt-1">Manage your chat widget FAQs and settings.</p>
-                </div>
+            <div className="flex justify-end">
                 <button
                     onClick={() => openModal()}
                     className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors shadow-sm flex items-center gap-2"
@@ -107,7 +106,6 @@ export default function WidgetPage() {
                     <Plus size={20} />
                     Add FAQ
                 </button>
-
             </div>
 
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
@@ -115,7 +113,9 @@ export default function WidgetPage() {
                     <h2 className="text-lg font-bold text-gray-800">Frequently Asked Questions</h2>
                 </div>
 
-                {faqs.length === 0 ? (
+                {loading ? (
+                    <FAQSkeleton />
+                ) : faqs.length === 0 ? (
                     <div className="p-10 text-center text-gray-500">
                         No FAQs found. Create one to get started.
                     </div>
@@ -154,7 +154,7 @@ export default function WidgetPage() {
                                                     <Pencil size={20} />
                                                 </button>
                                                 <button
-                                                    onClick={() => handleDelete(faq.id)}
+                                                    onClick={() => handleDeleteClick(faq.id)}
                                                     className="p-2 text-gray-400 hover:text-red-500 transition-colors"
                                                 >
                                                     <Trash2 size={20} />
@@ -264,6 +264,37 @@ export default function WidgetPage() {
                     </div>
                 </div>
             )}
+
+            <ConfirmationModal 
+                isOpen={isDeleteModalOpen}
+                onClose={() => setIsDeleteModalOpen(false)}
+                onConfirm={handleConfirmDelete}
+                title="Delete FAQ"
+                message="Are you sure you want to delete this frequently asked question? This action cannot be undone."
+                confirmText="Delete FAQ"
+            />
+        </div>
+    );
+}
+
+function FAQSkeleton() {
+    return (
+        <div className="divide-y divide-gray-100 animate-pulse">
+            {[1, 2, 3, 4].map(i => (
+                <div key={i} className="flex items-center gap-6 px-6 py-5">
+                    <div className="w-1/3 space-y-2">
+                        <div className="h-4 bg-gray-100 rounded w-3/4"></div>
+                        <div className="h-3 bg-gray-50 rounded w-1/2"></div>
+                    </div>
+                    <div className="w-1/3 space-y-2">
+                        <div className="h-4 bg-gray-100 rounded w-full"></div>
+                        <div className="h-4 bg-gray-100 rounded w-5/6"></div>
+                    </div>
+                    <div className="flex-1 flex justify-end">
+                        <div className="h-8 w-16 bg-gray-100 rounded-lg"></div>
+                    </div>
+                </div>
+            ))}
         </div>
     );
 }

@@ -33,10 +33,16 @@ const SEARCHABLE_ROUTES = [
         keywords: ['users', 'customers', 'owners']
     },
     {
-        title: 'Settings',
-        href: '/admin/schedule',
+        title: 'Schedule',
+        href: '/admin/settings/schedule',
         description: 'Configure clinic hours, services, and system preferences.',
-        keywords: ['config', 'setup', 'admin']
+        keywords: ['config', 'setup', 'admin', 'hours']
+    },
+    {
+        title: 'FAQ Management',
+        href: '/admin/settings/widget/faq',
+        description: 'Manage frequently asked questions for the booking widget.',
+        keywords: ['faq', 'help', 'widget', 'questions']
     },
 ];
 
@@ -58,7 +64,10 @@ export default function Breadcrumbs() {
         appointments: 'Appointments',
         vets: 'Vets',
         clients: 'Clients',
-        schedule: 'Settings',
+        schedule: 'Schedule',
+        settings: 'Settings',
+        widget: 'Widget',
+        faq: 'FAQ',
     };
 
     // Filter routes based on search

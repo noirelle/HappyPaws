@@ -56,7 +56,7 @@ export default function SidebarNav({ sidebarOpen }: SidebarNavProps) {
             title: 'Settings',
             items: [
                 {
-                    name: 'Schedule', href: '/admin/schedule', icon: (
+                    name: 'Schedule', href: '/admin/settings/schedule', icon: (
                         <CalendarClock size={20} />
                     )
 

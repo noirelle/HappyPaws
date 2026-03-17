@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Plus, Search, Filter, MoreHorizontal, Shield, Ban, CheckCircle, XCircle, Trash2, Edit } from 'lucide-react';
+import ConfirmationModal from '../../components/ui/ConfirmationModal';
 
 export default function UsersPage() {
     const [users, setUsers] = useState<any[]>([]);
@@ -9,6 +10,10 @@ export default function UsersPage() {
     const [showInviteForm, setShowInviteForm] = useState(false);
     const [inviteData, setInviteData] = useState({ email: '', first_name: '', last_name: '', role_id: 3 }); // Default to Vet
     const [roles, setRoles] = useState<any[]>([]);
+
+    const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+    const [userToUpdate, setUserToUpdate] = useState<{id: string, updates: any} | null>(null);
+    const [errorModal, setErrorModal] = useState<{show: boolean, message: string}>({show: false, message: ''});
 
     useEffect(() => {
         fetchUsers();
@@ -46,7 +51,7 @@ export default function UsersPage() {
                 setInviteData({ email: '', first_name: '', last_name: '', role_id: 3 });
                 fetchUsers();
             } else {
-                alert('Failed to invite user');
+                setErrorModal({show: true, message: 'Failed to invite user. Please try again later.'});
             }
         } catch (error) {
             console.error('Invite error', error);
@@ -63,16 +68,29 @@ export default function UsersPage() {
             if (res.ok) fetchUsers();
         } catch (error) {
             console.error('Update error', error);
+        } finally {
+            setIsConfirmOpen(false);
+            setUserToUpdate(null);
         }
     };
 
+    const handleBanClick = (id: string, updates: any) => {
+        if (updates.is_banned === true) {
+            setUserToUpdate({id, updates});
+            setIsConfirmOpen(true);
+        } else {
+            handleStatusChange(id, updates);
+        }
+    };
+
+    if (loading && users.length === 0) {
+        return <UsersSkeleton />;
+    }
+
     return (
-        <div className="space-y-8 animate-in fade-in duration-500">
+        <div className="space-y-8">
             <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
-                <div>
-                    <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">User Management</h1>
-                    <p className="text-gray-500 mt-1">Manage system access and permissions.</p>
-                </div>
+                <div className="flex-1" />
                 <button
                     onClick={() => setShowInviteForm(!showInviteForm)}
                     className="bg-gray-900 text-white px-5 py-2.5 rounded-lg font-semibold shadow-lg hover:bg-gray-800 transition-all text-sm flex items-center gap-2"
@@ -187,7 +205,7 @@ export default function UsersPage() {
                                                 </button>
                                             )}
                                             <button
-                                                onClick={() => handleStatusChange(user.id, { is_banned: !user.is_banned })}
+                                                onClick={() => handleBanClick(user.id, { is_banned: !user.is_banned })}
                                                 className={`p-2 rounded-lg transition-colors ${user.is_banned ? 'text-gray-500 hover:bg-gray-100' : 'text-red-500 hover:bg-red-50'}`}
                                                 title={user.is_banned ? "Unban" : "Ban"}
                                             >
@@ -200,6 +218,36 @@ export default function UsersPage() {
                             ))}
                         </tbody>
                     </table>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+function UsersSkeleton() {
+    return (
+        <div className="space-y-8 animate-pulse">
+            <div className="flex justify-end pt-2">
+                <div className="h-10 bg-gray-900 rounded-lg w-32"></div>
+            </div>
+
+            <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+                <div className="h-14 bg-gray-50/50 border-b border-gray-100 flex items-center px-6 gap-8">
+                    {[1, 2, 3, 4, 5].map(i => <div key={i} className="h-4 bg-gray-100 rounded w-20"></div>)}
+                </div>
+                <div className="divide-y divide-gray-50">
+                    {[1, 2, 3, 4, 5].map(i => (
+                        <div key={i} className="px-6 py-5 flex items-center gap-4">
+                            <div className="w-10 h-10 rounded-full bg-gray-100"></div>
+                            <div className="flex-1 space-y-2">
+                                <div className="h-4 bg-gray-100 rounded w-1/4"></div>
+                                <div className="h-3 bg-gray-50 rounded w-1/3"></div>
+                            </div>
+                            <div className="h-6 bg-gray-100 rounded-full w-20"></div>
+                            <div className="h-6 bg-gray-100 rounded w-16"></div>
+                            <div className="h-8 bg-gray-100 rounded w-24"></div>
+                        </div>
+                    ))}
                 </div>
             </div>
         </div>

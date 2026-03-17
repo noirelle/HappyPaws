@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { bookingSchema, type Booking } from '@/lib/schemas';
 import { z } from 'zod';
+import { Clock, Search, Check, Mail, Phone, User, Calendar, PawPrint, AlertTriangle } from 'lucide-react';
 
 const INITIAL_DATA: Booking = {
   petName: '',
@@ -20,7 +21,8 @@ const INITIAL_DATA: Booking = {
   phone: '',
   preferredDate: '',
   preferredTime: '',
-  status: 'pending'
+  status: 'pending',
+  vet_id: null
 };
 
 export default function BookingWizard() {
@@ -30,10 +32,32 @@ export default function BookingWizard() {
   const [formData, setFormData] = useState<Booking>(INITIAL_DATA);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string[]>>({});
+  const [vets, setVets] = useState<any[]>([]);
+  const [loadingVets, setLoadingVets] = useState(true);
+  const [availableSlots, setAvailableSlots] = useState<{time: string, isTaken: boolean}[]>([]);
+  const [loadingSlots, setLoadingSlots] = useState(false);
   const [serverError, setServerError] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Load params on mount
   useEffect(() => {
+    const fetchVets = async () => {
+      try {
+        const url = searchQuery 
+          ? `/api/public/vets?search=${encodeURIComponent(searchQuery)}` 
+          : '/api/public/vets';
+        const res = await fetch(url);
+        if (res.ok) {
+          const data = await res.json();
+          setVets(data);
+        }
+      } catch (error) {
+        console.error('Failed to fetch vets', error);
+      } finally {
+        setLoadingVets(false);
+      }
+    };
+    fetchVets();
     const date = searchParams.get('date');
     const time = searchParams.get('time');
     const reason = searchParams.get('reason');
@@ -47,6 +71,29 @@ export default function BookingWizard() {
       }));
     }
   }, [searchParams]);
+
+  useEffect(() => {
+    const fetchAvailability = async () => {
+      if (!formData.preferredDate) {
+        setAvailableSlots([]);
+        return;
+      }
+      setLoadingSlots(true);
+      try {
+        const vetId = (formData as any).vet_id || 'any';
+        const res = await fetch(`/api/availability?date=${formData.preferredDate}&vetId=${vetId}`);
+        if (res.ok) {
+          setAvailableSlots(await res.json());
+        }
+      } catch (error) {
+        console.error('Failed to fetch availability', error);
+      } finally {
+        setLoadingSlots(false);
+      }
+    };
+
+    fetchAvailability();
+  }, [formData.preferredDate, (formData as any).vet_id]);
 
   const updateFields = (fields: Partial<Booking>) => {
     setFormData(prev => ({ ...prev, ...fields }));
@@ -64,6 +111,9 @@ export default function BookingWizard() {
       fieldsToValidate = ['preferredDate', 'preferredTime', 'visitReason'];
     } else if (currentStep === 3) {
       fieldsToValidate = ['ownerName', 'email', 'phone'];
+    } else if (currentStep === 4) {
+      // Step 4 is review, always valid to go back or forward (submit)
+      return true;
     }
 
     // Create a partial schema for the current step
@@ -119,8 +169,7 @@ export default function BookingWizard() {
         throw new Error(result.error || 'Failed to submit booking');
       }
 
-      alert("Appointment Confirmed! We'll see you on " + formData.preferredDate);
-      router.push('/');
+      setStep(5);
     } catch (error: any) {
       setServerError(error.message);
       console.error(error);
@@ -133,18 +182,20 @@ export default function BookingWizard() {
     <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100">
 
       {/* Progress Bar */}
-      <div className="bg-gray-50 p-6 border-b border-gray-100">
-        <div className="flex justify-between items-center mb-2 text-sm font-bold text-gray-500 uppercase tracking-wider">
-          <span>Step {step} of 4</span>
-          <span>{Math.round((step / 4) * 100)}% Completed</span>
+      {step < 5 && (
+        <div className="bg-gray-50 p-6 border-b border-gray-100">
+          <div className="flex justify-between items-center mb-2 text-sm font-bold text-gray-500 uppercase tracking-wider">
+            <span>Step {step} of 4</span>
+            <span>{Math.round((step / 4) * 100)}% Completed</span>
+          </div>
+          <div className="w-full bg-gray-200 rounded-full h-2.5">
+            <div
+              className="bg-primary h-2.5 rounded-full transition-all duration-500 ease-out"
+              style={{ width: `${(step / 4) * 100}%` }}
+            ></div>
+          </div>
         </div>
-        <div className="w-full bg-gray-200 rounded-full h-2.5">
-          <div
-            className="bg-primary h-2.5 rounded-full transition-all duration-500 ease-out"
-            style={{ width: `${(step / 4) * 100}%` }}
-          ></div>
-        </div>
-      </div>
+      )}
 
       <form onSubmit={handleSubmit} className="p-8 md:p-10">
 
@@ -247,25 +298,33 @@ export default function BookingWizard() {
                     <label className="block text-xs font-bold text-blue-800 uppercase mb-1">Date <span className="text-red-500">*</span></label>
                     <input
                       type="date"
-                      className={`w-full p-2 rounded border ${errors.preferredDate ? 'border-red-300' : 'border-blue-200'} bg-white`}
+                      min={new Date().toISOString().split('T')[0]}
+                      className={`w-full p-3 rounded-xl border-2 ${errors.preferredDate ? 'border-red-300 bg-red-50' : 'border-blue-100 bg-white'} focus:border-primary focus:ring-4 focus:ring-blue-50 outline-none transition-all font-bold text-gray-700`}
                       value={formData.preferredDate}
-                      onChange={e => updateFields({ preferredDate: e.target.value })}
+                      onChange={e => updateFields({ preferredDate: e.target.value, preferredTime: '' })}
                     />
                     {errors.preferredDate && <p className="text-red-500 text-xs mt-1">{errors.preferredDate[0]}</p>}
                   </div>
                   <div>
                     <label className="block text-xs font-bold text-blue-800 uppercase mb-1">Time <span className="text-red-500">*</span></label>
-                    <select
-                      className={`w-full p-2 rounded border ${errors.preferredTime ? 'border-red-300' : 'border-blue-200'} bg-white`}
-                      value={formData.preferredTime}
-                      onChange={e => updateFields({ preferredTime: e.target.value })}
-                    >
-                      <option value="">Select Time</option>
-                      <option value="9:00 AM">9:00 AM</option>
-                      <option value="11:30 AM">11:30 AM</option>
-                      <option value="2:15 PM">2:15 PM</option>
-                      <option value="4:45 PM">4:45 PM</option>
-                    </select>
+                    <div className="relative">
+                      <select
+                        className={`w-full p-3 rounded-xl border-2 ${errors.preferredTime ? 'border-red-300 bg-red-50' : 'border-blue-100 bg-white'} focus:border-primary focus:ring-4 focus:ring-blue-50 outline-none transition-all font-bold text-gray-700 appearance-none disabled:opacity-50`}
+                        value={formData.preferredTime}
+                        onChange={e => updateFields({ preferredTime: e.target.value })}
+                        disabled={!formData.preferredDate || loadingSlots}
+                      >
+                        <option value="">{formData.preferredDate ? (loadingSlots ? 'Checking slots...' : 'Select a Slot') : 'Select date first'}</option>
+                        {availableSlots.map(slot => (
+                          <option key={slot.time} value={slot.time} disabled={slot.isTaken}>
+                            {slot.time} {slot.isTaken ? '(Taken)' : ''}
+                          </option>
+                        ))}
+                      </select>
+                      <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                        <Clock size={16} className="text-blue-300" />
+                      </div>
+                    </div>
                     {errors.preferredTime && <p className="text-red-500 text-xs mt-1">{errors.preferredTime[0]}</p>}
                   </div>
                 </div>
@@ -307,6 +366,44 @@ export default function BookingWizard() {
                 <label htmlFor="emergency" className="text-red-800 font-semibold cursor-pointer">
                   Is this an emergency? (Please call us immediately at 555-123-4567 if critical)
                 </label>
+              </div>
+
+              <div className="pt-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+                  <label className="block text-sm font-semibold text-gray-700">Preferred Specialist (Optional)</label>
+                  <div className="relative flex-1 max-w-xs">
+                     <input 
+                       type="text"
+                       placeholder="Search specialists..."
+                       className="w-full pl-9 pr-4 py-2 text-sm border border-gray-200 rounded-full focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+                       value={searchQuery}
+                       onChange={(e) => setSearchQuery(e.target.value)}
+                     />
+                     <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {vets.map(vet => (
+                    <div 
+                      key={vet.id}
+                      onClick={() => updateFields({ vet_id: vet.id })}
+                      className={`p-4 rounded-xl border-2 cursor-pointer transition-all flex items-center gap-3 ${
+                        (formData as any).vet_id === vet.id 
+                          ? 'border-primary bg-blue-50/50 shadow-md ring-2 ring-blue-100' 
+                          : 'border-gray-100 hover:border-blue-200 bg-white'
+                      }`}
+                    >
+                      <div className="w-10 h-10 rounded-lg bg-blue-100 text-primary flex items-center justify-center font-bold text-xs">
+                        {vet.image}
+                      </div>
+                      <div>
+                        <div className="font-bold text-gray-900 text-sm">{vet.name}</div>
+                        <div className="text-[10px] text-gray-400 font-medium uppercase">{vet.specialty}</div>
+                      </div>
+                    </div>
+                  ))}
+                  {loadingVets && <div className="col-span-2 text-center text-gray-400 text-sm">Loading specialists...</div>}
+                </div>
               </div>
             </div>
           </div>
@@ -361,83 +458,102 @@ export default function BookingWizard() {
           </div>
         )}
 
-        {/* Step 4: Summary */}
-        {step === 4 && (
-          <div className="animate-in fade-in slide-in-from-right-4 duration-300">
-            <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-3">
-              <span className="w-8 h-8 rounded-full bg-blue-100 text-primary flex items-center justify-center text-sm">4</span>
-              Review & Submit
-            </h2>
+        {/* Step 5: Confirmation */}
+        {step === 5 && (
+          <div className="animate-in zoom-in-95 duration-500 text-center py-10 px-6">
+            <div className="w-24 h-24 bg-green-100 text-green-600 rounded-full flex items-center justify-center text-5xl mx-auto mb-8 shadow-inner">
+              ✓
+            </div>
+            
+            <h2 className="text-4xl font-extrabold text-gray-900 mb-4 tracking-tight">Booking Confirmed!</h2>
+            <p className="text-lg text-gray-600 mb-10 max-w-md mx-auto leading-relaxed">
+              Yay! We've received your request for <span className="font-bold text-primary">{formData.petName}</span>. 
+              We'll see you on <span className="font-bold text-primary">{formData.preferredDate}</span> at <span className="font-bold text-primary">{formData.preferredTime}</span>.
+            </p>
 
-            <div className="bg-gray-50 rounded-xl p-6 space-y-4">
-              <div className="flex items-center gap-4 bg-primary/10 p-4 rounded-lg border border-primary/20">
-                <div className="text-2xl">📅</div>
+            <div className="bg-blue-50/50 rounded-2xl p-8 mb-10 max-w-lg mx-auto border border-blue-100/50 backdrop-blur-sm">
+              <div className="grid grid-cols-2 gap-8 text-left">
                 <div>
-                  <h3 className="font-bold text-primary">Appointment Requested</h3>
-                  <p className="font-semibold text-gray-700">{formData.preferredDate || 'N/A'} at {formData.preferredTime || 'N/A'}</p>
+                  <label className="block text-xs font-bold text-blue-500 uppercase tracking-widest mb-1">Appointment</label>
+                  <p className="font-bold text-gray-900">{formData.visitReason}</p>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-blue-500 uppercase tracking-widest mb-1">Patient</label>
+                  <p className="font-bold text-gray-900">{formData.petName} ({formData.petType})</p>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-blue-500 uppercase tracking-widest mb-1">Date</label>
+                  <p className="font-bold text-gray-900">{formData.preferredDate}</p>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-blue-500 uppercase tracking-widest mb-1">Time</label>
+                  <p className="font-bold text-gray-900">{formData.preferredTime}</p>
                 </div>
               </div>
-
-              <div className="border-b border-gray-200 pb-4">
-                <h3 className="font-bold text-gray-800 mb-2">Pet Information</h3>
-                <p className="text-gray-600">Name: <span className="font-semibold text-gray-800">{formData.petName}</span></p>
-                <p className="text-gray-600">Type: {formData.petType} ({formData.breed || 'Unknown'})</p>
-                <p className="text-gray-600">Age: {formData.age || 'N/A'}</p>
-              </div>
-
-              <div className="border-b border-gray-200 pb-4">
-                <h3 className="font-bold text-gray-800 mb-2">Details</h3>
-                <p className="text-gray-600">Reason: {formData.visitReason}</p>
-                <p className="text-gray-600 mt-1">Notes: <span className="italic">{formData.symptoms || "None provided"}</span></p>
-              </div>
-
-              <div>
-                <h3 className="font-bold text-gray-800 mb-2">Contact Info</h3>
-                <p className="text-gray-600">{formData.ownerName}</p>
-                <p className="text-gray-600">{formData.email}</p>
-                <p className="text-gray-600">{formData.phone}</p>
-              </div>
             </div>
 
-            <div className="mt-6 flex items-start gap-4 p-4 bg-green-50 rounded-lg text-sm text-green-800 border border-green-100">
-              <span className="text-xl">🛡️</span>
-              <p>We prioritize your privacy. Your information is secure and will only be used for your pet's care.</p>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+              <button
+                type="button"
+                onClick={() => router.push('/')}
+                className="w-full sm:w-auto px-10 py-4 rounded-full bg-primary text-white font-bold shadow-xl hover:bg-[#009ad4] hover:scale-105 transition-all duration-300"
+              >
+                Back to Home
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setFormData(INITIAL_DATA);
+                  setStep(1);
+                }}
+                className="w-full sm:w-auto px-10 py-4 rounded-full bg-white text-gray-700 font-bold border border-gray-200 shadow-sm hover:bg-gray-50 transition-all duration-300"
+              >
+                Book Another
+              </button>
             </div>
+            
+            <p className="mt-10 text-sm text-gray-400">
+              A confirmation email has been sent to <span className="font-medium text-gray-600">{formData.email}</span>
+            </p>
           </div>
         )}
 
         {/* Navigation Buttons */}
-        <div className="mt-10 flex justify-between pt-6 border-t border-gray-100">
-          {step > 1 ? (
-            <button
-              type="button"
-              onClick={prevStep}
-              className="px-6 py-3 rounded-full text-gray-600 font-bold hover:bg-gray-100 transition-colors"
-            >
-              Back
-            </button>
-          ) : (
-            <div></div> // Spacer
-          )}
+        {step < 5 && (
+          <div className="mt-10 flex justify-between pt-6 border-t border-gray-100">
+            {step > 1 ? (
+              <button
+                type="button"
+                onClick={prevStep}
+                className="px-6 py-3 rounded-full text-gray-600 font-bold hover:bg-gray-100 transition-colors"
+              >
+                Back
+              </button>
+            ) : (
+              <div></div> // Spacer
+            )}
 
-          {step < 4 ? (
-            <button
-              type="button"
-              onClick={nextStep}
-              className="px-8 py-3 rounded-full bg-primary text-white font-bold shadow-md hover:bg-[#009ad4] hover:shadow-lg transition-all"
-            >
-              Next Step
-            </button>
-          ) : (
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="px-8 py-3 rounded-full bg-accent text-white font-bold shadow-md hover:bg-[#d97f17] hover:shadow-lg transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isSubmitting ? 'Processing...' : 'Confirm Appointment'}
-            </button>
-          )}
-        </div>
+            {step < 4 ? (
+              <button
+                type="button"
+                onClick={nextStep}
+                className="px-8 py-3 rounded-full bg-primary text-white font-bold shadow-md hover:bg-[#009ad4] hover:shadow-lg transition-all"
+              >
+                Next Step
+              </button>
+            ) : step === 4 ? (
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="px-8 py-3 rounded-full bg-accent text-white font-bold shadow-md hover:bg-[#d97f17] hover:shadow-lg transition-all flex items-center gap-2 disabled:opacity-50"
+              >
+                {isSubmitting ? 'Processing...' : 'Confirm Appointment'}
+              </button>
+            ) : (
+                <div /> // Step 5 has no nav
+            )}
+          </div>
+        )}
 
       </form>
     </div>

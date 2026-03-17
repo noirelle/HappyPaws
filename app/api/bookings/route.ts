@@ -63,6 +63,7 @@ export async function POST(request: Request) {
                     preferred_date: validation.data.preferredDate,
                     preferred_time: validation.data.preferredTime,
                     status: validation.data.status,
+                    vet_id: validation.data.vet_id,
                 }
             ])
             .select();
@@ -76,6 +77,44 @@ export async function POST(request: Request) {
 
     } catch (err) {
         console.error('Server Error:', err);
+        return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    }
+}
+
+export async function PATCH(request: Request) {
+    const supabase = await createClient();
+    
+    // Route protection
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    try {
+        const body = await request.json();
+        const { id, status, vet_id } = body;
+
+        if (!id) {
+            return NextResponse.json({ error: 'Booking ID is required' }, { status: 400 });
+        }
+
+        const updateData: any = {};
+        if (status) updateData.status = status;
+        if (vet_id !== undefined) updateData.vet_id = vet_id;
+
+        const { data, error } = await supabase
+            .from('bookings')
+            .update(updateData)
+            .eq('id', id)
+            .select();
+
+        if (error) {
+            return NextResponse.json({ error: error.message }, { status: 500 });
+        }
+
+        return NextResponse.json({ success: true, data });
+
+    } catch (err) {
         return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
     }
 }
