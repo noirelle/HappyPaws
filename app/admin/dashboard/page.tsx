@@ -12,6 +12,7 @@ export default function DashboardPage() {
         recentActivity: []
     });
     const [loading, setLoading] = useState(true);
+    const [activeTab, setActiveTab] = useState('All');
 
     useEffect(() => {
         const fetchStats = async () => {
@@ -70,19 +71,21 @@ export default function DashboardPage() {
                 <div className="border-b border-gray-100">
                     <div className="flex gap-8 overflow-x-auto px-6 py-4 scrollbar-hide">
                         {[
-                            { name: 'View All', count: (stats.upcomingCount || 0) + (stats.pendingCount || 0), active: true },
-                            { name: 'Pending', count: stats.pendingCount || 0, active: false },
-                            { name: 'Upcoming', count: stats.upcomingCount || 0, active: false },
+                            { id: 'All', name: 'View All', count: (stats.upcomingCount || 0) + (stats.pendingCount || 0) + (stats.cancelledCount || 0) },
+                            { id: 'Pending', name: 'Pending', count: stats.pendingCount || 0 },
+                            { id: 'Upcoming', name: 'Upcoming', count: stats.upcomingCount || 0 },
+                            { id: 'Cancelled', name: 'Cancelled', count: stats.cancelledCount || 0 },
                         ].map(tab => (
                             <button
-                                key={tab.name}
-                                className={`pb-2 px-1 text-sm font-medium border-b-2 transition-all whitespace-nowrap flex items-center gap-2 ${tab.active
+                                key={tab.id}
+                                onClick={() => setActiveTab(tab.id)}
+                                className={`pb-2 px-1 text-sm font-medium border-b-2 transition-all whitespace-nowrap flex items-center gap-2 ${activeTab === tab.id
                                     ? 'border-primary text-primary'
                                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                                     }`}
                             >
                                 {tab.name}
-                                <span className={`px-2 py-0.5 rounded-full text-xs ${tab.active ? 'bg-blue-100 text-primary' : 'bg-gray-100 text-gray-500'
+                                <span className={`px-2 py-0.5 rounded-full text-xs ${activeTab === tab.id ? 'bg-blue-100 text-primary' : 'bg-gray-100 text-gray-500'
                                     }`}>
                                     {tab.count}
                                 </span>
@@ -91,23 +94,6 @@ export default function DashboardPage() {
                     </div>
                 </div>
 
-                {/* Filter Bar */}
-                <div className="p-5 flex flex-col sm:flex-row gap-4 justify-between bg-[#FCFCFD]">
-                    <div className="relative flex-1 max-w-md w-full">
-                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"><Search size={16} /></span>
-
-                        <input
-                            type="text"
-                            placeholder="Search appointments..."
-                            className="w-full pl-10 pr-4 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-300 transition-all"
-                        />
-                    </div>
-                    <button className="flex items-center justify-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors shadow-sm w-full sm:w-auto">
-                        <Filter size={16} />
-                        Filter
-                    </button>
-
-                </div>
 
                 {/* Table */}
                 <div className="overflow-x-auto custom-scrollbar">
@@ -125,7 +111,16 @@ export default function DashboardPage() {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100">
-                            {stats.recentActivity?.map((row: any, i: number) => (
+                            {stats.recentActivity?.filter((row: any) => {
+                                if (activeTab === 'All') return true;
+                                if (activeTab === 'Pending') return row.status === 'pending';
+                                if (activeTab === 'Cancelled') return row.status === 'cancelled';
+                                if (activeTab === 'Upcoming') {
+                                    const today = new Date().toISOString().split('T')[0];
+                                    return row.status !== 'cancelled' && row.preferred_date >= today;
+                                }
+                                return true;
+                            }).map((row: any, i: number) => (
                                 <tr key={row.id || i} className="hover:bg-gray-50/50 transition-colors group">
                                     <td className="px-6 py-5">
                                         <input type="checkbox" className="rounded border-gray-300 text-primary focus:ring-primary" />

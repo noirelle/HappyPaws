@@ -92,15 +92,42 @@ export async function PATCH(request: Request) {
 
     try {
         const body = await request.json();
-        const { id, status, vet_id } = body;
+        const { id, ...updates } = body;
 
         if (!id) {
             return NextResponse.json({ error: 'Booking ID is required' }, { status: 400 });
         }
 
         const updateData: any = {};
-        if (status) updateData.status = status;
-        if (vet_id !== undefined) updateData.vet_id = vet_id;
+        const allowedFields = [
+            'pet_name', 'pet_type', 'breed', 'age', 'gender', 
+            'visit_reason', 'symptoms', 'is_emergency', 
+            'owner_name', 'email', 'phone', 
+            'preferred_date', 'preferred_time', 'status', 'vet_id'
+        ];
+
+        // Map camelCase from frontend to snake_case for DB if necessary, 
+        // but the current implementation seems to use a mix. 
+        // Let's support both or just pass through what's mapped.
+        // Based on the POST method, the DB uses snake_case.
+        
+        const fieldMapping: Record<string, string> = {
+            petName: 'pet_name',
+            petType: 'pet_type',
+            visitReason: 'visit_reason',
+            isEmergency: 'is_emergency',
+            ownerName: 'owner_name',
+            preferredDate: 'preferred_date',
+            preferredTime: 'preferred_time',
+            vetId: 'vet_id'
+        };
+
+        Object.keys(updates).forEach(key => {
+            const dbKey = fieldMapping[key] || key;
+            if (allowedFields.includes(dbKey)) {
+                updateData[dbKey] = updates[key];
+            }
+        });
 
         const { data, error } = await supabase
             .from('bookings')

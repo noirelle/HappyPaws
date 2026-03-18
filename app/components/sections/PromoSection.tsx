@@ -1,42 +1,27 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 
 export default function PromoSection() {
-  const promos = [
-    {
-      icon: "🐶",
-      title: "Puppy/Kitten Kit",
-      description: "Complete vaccines, deworming, and initial health check to start life right.",
-      discount: "Save $50",
-      color: "bg-green-50 text-green-600",
-      discountColor: "bg-secondary"
-    },
-    {
-      icon: "🩺",
-      title: "Senior Pet Wellness",
-      description: "Comprehensive bloodwork, exam, and joint health assessment for aging pets.",
-      discount: "15% Off",
-      color: "bg-blue-50 text-blue-600",
-      discountColor: "bg-primary"
-    },
-    {
-      icon: "🦷",
-      title: "Dental Special",
-      description: "Full cleaning, polishing, and fluoride treatment to keep smiles bright.",
-      discount: "Limited Time",
-      color: "bg-orange-50 text-orange-600",
-      discountColor: "bg-accent"
-    },
-    {
-      icon: "💉",
-      title: "Vaccine Bundle",
-      description: "Annual booster shots including Rabies, DHPP, and Bordetella.",
-      discount: "Save 20%",
-      color: "bg-purple-50 text-purple-600",
-      discountColor: "bg-purple-500"
-    }
-  ];
+  const [promos, setPromos] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchPromos = async () => {
+      try {
+        const res = await fetch('/api/packages?active=true');
+        if (res.ok) {
+          const data = await res.json();
+          setPromos(data);
+        }
+      } catch (err) {
+        console.error('Failed to load promos', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchPromos();
+  }, []);
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -88,17 +73,26 @@ export default function PromoSection() {
           onMouseUp={handleMouseUp}
           onMouseMove={handleMouseMove}
         >
-          {promos.map((promo, index) => (
+          {loading ? (
+            [1, 2, 3].map(i => (
+              <div key={i} className="flex-shrink-0 w-[320px] md:w-[380px] bg-white rounded-[2rem] p-10 text-center shadow-lg border border-gray-100 animate-pulse">
+                <div className="w-24 h-24 bg-gray-100 rounded-2xl mx-auto mb-8" />
+                <div className="h-8 bg-gray-100 rounded w-2/3 mx-auto mb-4" />
+                <div className="h-4 bg-gray-100 rounded w-full mb-8" />
+                <div className="h-12 bg-gray-100 rounded-full w-40 mx-auto" />
+              </div>
+            ))
+          ) : promos.map((promo, index) => (
             <div
-              key={index}
+              key={promo.id || index}
               className="flex-shrink-0 w-[320px] md:w-[380px] snap-center"
             >
               <div className="bg-white rounded-[2rem] p-10 text-center shadow-lg transition-all duration-300 hover:-translate-y-2 hover:shadow-xl border border-transparent hover:border-gray-100 group relative overflow-hidden h-full flex flex-col items-center">
 
                 {/* Decorative Blob */}
-                <div className={`absolute top-0 right-0 w-32 h-32 ${promo.color} opacity-10 rounded-bl-[100px] pointer-events-none transition-transform group-hover:scale-150 duration-700`}></div>
+                <div className={`absolute top-0 right-0 w-32 h-32 ${promo.color || 'bg-blue-50 text-blue-600'} opacity-10 rounded-bl-[100px] pointer-events-none transition-transform group-hover:scale-150 duration-700`}></div>
 
-                <div className={`w-24 h-24 ${promo.color} rounded-2xl mx-auto mb-8 flex items-center justify-center text-5xl shadow-sm group-hover:rotate-12 transition-transform duration-300`}>
+                <div className={`w-24 h-24 ${promo.color || 'bg-blue-50 text-blue-600'} rounded-2xl mx-auto mb-8 flex items-center justify-center text-5xl shadow-sm group-hover:rotate-12 transition-transform duration-300`}>
                   {promo.icon}
                 </div>
 
@@ -106,7 +100,7 @@ export default function PromoSection() {
                 <p className="text-gray-600 mb-8 text-lg leading-relaxed flex-grow">{promo.description}</p>
 
                 <div className="mt-auto">
-                  <span className={`inline-block ${promo.discountColor} text-white py-3 px-8 rounded-full font-bold text-base shadow-lg hover:scale-105 transition-transform cursor-default`}>
+                  <span className={`inline-block ${promo.discount_color || 'bg-primary'} text-white py-3 px-8 rounded-full font-bold text-base shadow-lg hover:scale-105 transition-transform cursor-default`}>
                     {promo.discount}
                   </span>
                 </div>

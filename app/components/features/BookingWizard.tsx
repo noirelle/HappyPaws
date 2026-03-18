@@ -33,7 +33,9 @@ export default function BookingWizard() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string[]>>({});
   const [vets, setVets] = useState<any[]>([]);
+  const [services, setServices] = useState<any[]>([]);
   const [loadingVets, setLoadingVets] = useState(true);
+  const [loadingServices, setLoadingServices] = useState(true);
   const [availableSlots, setAvailableSlots] = useState<{time: string, isTaken: boolean}[]>([]);
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [serverError, setServerError] = useState('');
@@ -41,6 +43,24 @@ export default function BookingWizard() {
 
   // Load params on mount
   useEffect(() => {
+    const fetchServices = async () => {
+      try {
+        const res = await fetch('/api/services');
+        if (res.ok) {
+          const data = await res.json();
+          const activeServices = data.filter((s: any) => s.is_active);
+          setServices(activeServices);
+          if (activeServices.length > 0 && !formData.visitReason) {
+            setFormData(prev => ({ ...prev, visitReason: activeServices[0].name }));
+          }
+        }
+      } catch (err) {
+        console.error('Failed to fetch services', err);
+      } finally {
+        setLoadingServices(false);
+      }
+    };
+
     const fetchVets = async () => {
       try {
         const url = searchQuery 
@@ -58,6 +78,7 @@ export default function BookingWizard() {
       }
     };
     fetchVets();
+    fetchServices();
     const date = searchParams.get('date');
     const time = searchParams.get('time');
     const reason = searchParams.get('reason');
@@ -333,15 +354,20 @@ export default function BookingWizard() {
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">Reason for Visit <span className="text-red-500">*</span></label>
                 <select
-                  className="w-full p-3 rounded-lg border border-gray-300 focus:border-primary focus:ring-2 focus:ring-blue-100 outline-none transition-all bg-white"
+                  className="w-full p-3 rounded-lg border border-gray-300 focus:border-primary focus:ring-2 focus:ring-blue-100 outline-none transition-all bg-white disabled:opacity-50"
                   value={formData.visitReason}
                   onChange={e => updateFields({ visitReason: e.target.value })}
+                  disabled={loadingServices}
                 >
-                  <option>Wellness Exam</option>
-                  <option>Vaccinations</option>
-                  <option>Dental Assessment</option>
-                  <option>Sick Visit / Injury</option>
-                  <option>Surgery Consultation</option>
+                  {loadingServices ? (
+                    <option>Loading services...</option>
+                  ) : services.length > 0 ? (
+                    services.map(s => (
+                      <option key={s.id} value={s.name}>{s.name}</option>
+                    ))
+                  ) : (
+                    <option>No services available</option>
+                  )}
                 </select>
               </div>
 

@@ -15,7 +15,12 @@ export default function AppointmentsPage() {
     const [selectedApt, setSelectedApt] = useState<any | null>(null);
     const [isConfirmOpen, setIsConfirmOpen] = useState(false);
     const [aptToCancel, setAptToCancel] = useState<number | null>(null);
-    const [newApt, setNewApt] = useState({
+    const [isEditing, setIsEditing] = useState(false);
+    const [editingAptId, setEditingAptId] = useState<number | null>(null);
+    const [allSlots, setAllSlots] = useState<any[]>([]);
+    const [services, setServices] = useState<any[]>([]);
+    const [isSaving, setIsSaving] = useState(false);
+    const [formData, setFormData] = useState({
         petName: '',
         petType: 'Dog',
         breed: '',
@@ -35,15 +40,33 @@ export default function AppointmentsPage() {
     const fetchData = async () => {
         setLoading(true);
         try {
-            const [aptRes, vetRes] = await Promise.all([
-                fetch(`/api/bookings${filter !== 'All' ? `?status=${filter.toLowerCase()}` : ''}`),
-                fetch('/api/vets')
-            ]);
+                const [aptRes, vetRes, slotsRes, servicesRes] = await Promise.all([
+                    fetch(`/api/bookings${filter !== 'All' ? `?status=${filter.toLowerCase()}` : ''}`),
+                    fetch('/api/vets'),
+                    fetch('/api/clinic-slots'),
+                    fetch('/api/services')
+                ]);
 
-            if (aptRes.ok && vetRes.ok) {
-                const [aptData, vetData] = await Promise.all([aptRes.json(), vetRes.json()]);
-                setAppointments(aptData);
-                setVets(vetData);
+                if (aptRes.ok && vetRes.ok && slotsRes.ok && servicesRes.ok) {
+                    const [aptData, vetData, slotsData, servicesData] = await Promise.all([
+                        aptRes.json(),
+                        vetRes.json(),
+                        slotsRes.json(),
+                        servicesRes.json()
+                    ]);
+                    setAppointments(aptData);
+                    setVets(vetData);
+                    setAllSlots(slotsData);
+                    setServices(servicesData || []);
+
+                    if (!isEditing && !formData.visitReason && servicesData?.length > 0) {
+                        setFormData(prev => ({ ...prev, visitReason: servicesData[0].name }));
+                    }
+
+                // If adding new, set default time once slots are loaded
+                if (!isEditing && !formData.preferredTime && slotsData.length > 0) {
+                    setFormData(prev => ({ ...prev, preferredTime: slotsData[0].time }));
+                }
             }
         } catch (error) {
             console.error('Failed to fetch data', error);
@@ -58,32 +81,69 @@ export default function AppointmentsPage() {
 
     const handleAddAppointment = async (e: React.FormEvent) => {
         e.preventDefault();
+        setIsSaving(true);
         try {
-            const res = await fetch('/api/bookings', {
-                method: 'POST',
+            const url = '/api/bookings';
+            const method = isEditing ? 'PATCH' : 'POST';
+            const body = isEditing ? { id: editingAptId, ...formData } : formData;
+
+            const res = await fetch(url, {
+                method,
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(newApt)
+                body: JSON.stringify(body)
             });
 
             if (res.ok) {
                 setIsAddModalOpen(false);
-                setNewApt({
-                    petName: '', petType: 'Dog', breed: '', age: '', gender: 'Male',
-                    visitReason: '', symptoms: '', isEmergency: false,
-                    ownerName: '', email: '', phone: '',
-                    preferredDate: new Date().toISOString().split('T')[0],
-                    preferredTime: '09:00', status: 'pending'
-                });
+                resetForm();
                 fetchData();
             }
         } catch (err) {
-            console.error('Failed to add appointment', err);
+            console.error('Failed to save appointment', err);
+        } finally {
+            setIsSaving(false);
         }
+    };
+
+    const resetForm = () => {
+        setFormData({
+            petName: '', petType: 'Dog', breed: '', age: '', gender: 'Male',
+            visitReason: '', symptoms: '', isEmergency: false,
+            ownerName: '', email: '', phone: '',
+            preferredDate: new Date().toISOString().split('T')[0],
+            preferredTime: allSlots[0]?.time || '', status: 'pending'
+        });
+        setIsEditing(false);
+        setEditingAptId(null);
+    };
+
+    const handleEditClick = (apt: any) => {
+        setFormData({
+            petName: apt.pet_name,
+            petType: apt.pet_type,
+            breed: apt.breed || '',
+            age: apt.age || '',
+            gender: apt.gender || 'Male',
+            visitReason: apt.visit_reason,
+            symptoms: apt.symptoms || '',
+            isEmergency: apt.is_emergency || false,
+            ownerName: apt.owner_name,
+            email: apt.email,
+            phone: apt.phone,
+            preferredDate: apt.preferred_date,
+            preferredTime: apt.preferred_time,
+            status: apt.status
+        });
+        setIsEditing(true);
+        setEditingAptId(apt.id);
+        setIsAddModalOpen(true);
     };
 
     const handleCancelApt = async () => {
         if (!aptToCancel) return;
-        handleUpdateBooking(aptToCancel, { status: 'cancelled' });
+        await handleUpdateBooking(aptToCancel, { status: 'cancelled' });
+        setIsConfirmOpen(false);
+        setAptToCancel(null);
     };
 
     const handleViewDetails = (apt: any) => {
@@ -120,6 +180,19 @@ export default function AppointmentsPage() {
         return '🐾';
     };
 
+    const formatTime = (time: string) => {
+        if (!time) return '';
+        // If it's already in 12h format (e.g. from clinic_slots), return as is
+        if (time.includes('AM') || time.includes('PM')) return time;
+        // If it's HH:MM:SS or HH:MM
+        const parts = time.split(':');
+        const hour = parseInt(parts[0]);
+        const min = parts[1];
+        const ampm = hour >= 12 ? 'PM' : 'AM';
+        const displayHour = hour % 12 || 12;
+        return `${displayHour}:${min} ${ampm}`;
+    };
+
     if (loading && appointments.length === 0) {
         return <AppointmentsSkeleton />;
     }
@@ -140,8 +213,11 @@ export default function AppointmentsPage() {
                         <option value="Confirmed">Confirmed</option>
                         <option value="Cancelled">Cancelled</option>
                     </select>
-                    <button 
-                        onClick={() => setIsAddModalOpen(true)}
+                    <button
+                        onClick={() => {
+                            resetForm();
+                            setIsAddModalOpen(true);
+                        }}
                         className="bg-gray-900 text-white px-5 py-2.5 rounded-lg font-semibold shadow-lg hover:bg-gray-800 transition-all text-sm flex items-center gap-2"
                     >
                         <Plus size={16} /> New Appointment
@@ -180,7 +256,7 @@ export default function AppointmentsPage() {
                                 <div className="w-px h-4 bg-gray-200"></div>
                                 <div className="flex items-center gap-2 text-gray-500 text-sm">
                                     <Clock size={18} />
-                                    <span className="font-medium text-gray-700">{apt.preferred_time}</span>
+                                    <span className="font-medium text-gray-700">{formatTime(apt.preferred_time)}</span>
                                 </div>
                             </div>
 
@@ -193,12 +269,12 @@ export default function AppointmentsPage() {
                                     <span className="text-gray-400 font-medium">Owner</span>
                                     <span className="font-semibold text-gray-700">{apt.owner_name}</span>
                                 </div>
-                                
+
                                 <div className="pt-2">
                                     <label className="text-[10px] uppercase tracking-wider text-gray-400 font-bold mb-1 block">Assigned Specialist</label>
                                     <div className="relative">
                                         <select
-                                            className="w-full pl-3 pr-10 py-2 bg-gray-50 border border-gray-100 rounded-lg text-sm font-semibold text-gray-700 outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-200 appearance-none cursor-pointer transition-all"
+                                            className={`w-full pl-3 pr-10 py-2 bg-gray-50 border border-gray-100 rounded-lg text-sm font-semibold text-gray-700 outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-200 appearance-none cursor-pointer transition-all ${updatingId === apt.id ? 'opacity-50' : ''}`}
                                             value={apt.vet_id || ''}
                                             onChange={(e) => handleUpdateBooking(apt.id, { vet_id: e.target.value ? parseInt(e.target.value) : null })}
                                             disabled={updatingId === apt.id}
@@ -208,33 +284,50 @@ export default function AppointmentsPage() {
                                                 <option key={vet.id} value={vet.id}>{vet.name}</option>
                                             ))}
                                         </select>
-                                        <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                                        <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center pointer-events-none">
+                                            {updatingId === apt.id ? (
+                                                <div className="w-3.5 h-3.5 border-2 border-primary/30 border-t-primary rounded-full animate-spin"></div>
+                                            ) : (
+                                                <ChevronDown size={14} className="text-gray-400" />
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
                         <div className="flex gap-2 pt-4 border-t border-gray-100 mt-auto">
+                            <button
+                                onClick={() => handleEditClick(apt)}
+                                className="flex-1 py-2 text-sm font-semibold text-gray-600 bg-gray-50 rounded-lg hover:bg-gray-100 transition-all"
+                            >
+                                Edit
+                            </button>
                             {apt.status === 'pending' ? (
-                                <>
-                                    <button 
-                                        onClick={() => {
-                                            setAptToCancel(apt.id);
-                                            setIsConfirmOpen(true);
-                                        }}
-                                        className="flex-1 py-2 text-sm font-semibold text-gray-500 bg-gray-50 rounded-lg hover:bg-red-50 hover:text-red-500 transition-all flex items-center justify-center gap-2"
-                                    >
-                                        Cancel
-                                    </button>
-                                    <button 
-                                        onClick={() => handleUpdateBooking(apt.id, { status: 'confirmed' })}
-                                        className="flex-[2] py-2 text-sm font-semibold text-white bg-green-500 rounded-lg hover:bg-green-600 shadow-sm shadow-green-200 transition-all flex items-center justify-center gap-2"
-                                    >
-                                        <CheckCircle size={16} /> Approve
-                                    </button>
-                                </>
+                                <button
+                                    onClick={() => handleUpdateBooking(apt.id, { status: 'confirmed' })}
+                                    disabled={updatingId === apt.id}
+                                    className="flex-[2] py-2 text-sm font-semibold text-white bg-green-500 rounded-lg hover:bg-green-600 shadow-sm shadow-green-200 transition-all flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+                                >
+                                    {updatingId === apt.id ? (
+                                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                                    ) : (
+                                        <CheckCircle size={16} />
+                                    )}
+                                    {updatingId === apt.id ? 'Approving...' : 'Approve'}
+                                </button>
+                            ) : apt.status !== 'cancelled' ? (
+                                <button
+                                    onClick={() => {
+                                        setAptToCancel(apt.id);
+                                        setIsConfirmOpen(true);
+                                    }}
+                                    className="flex-1 py-2 text-sm font-semibold text-red-500 bg-red-50 rounded-lg hover:bg-red-100 transition-all"
+                                >
+                                    Cancel
+                                </button>
                             ) : (
-                                <button 
+                                <button
                                     onClick={() => handleViewDetails(apt)}
                                     className="flex-1 py-2 text-sm font-semibold text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
                                 >
@@ -245,8 +338,11 @@ export default function AppointmentsPage() {
                     </div>
                 ))}
 
-                <button 
-                    onClick={() => setIsAddModalOpen(true)}
+                <button
+                    onClick={() => {
+                        resetForm();
+                        setIsAddModalOpen(true);
+                    }}
                     className="border-2 border-dashed border-gray-200 rounded-2xl p-6 flex flex-col items-center justify-center text-gray-400 hover:border-primary/50 hover:bg-blue-50/30 hover:text-primary transition-all min-h-[300px] group"
                 >
                     <div className="w-14 h-14 rounded-full bg-gray-50 flex items-center justify-center mb-3 group-hover:bg-blue-100 transition-colors">
@@ -263,23 +359,23 @@ export default function AppointmentsPage() {
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm animate-in fade-in duration-300">
                     <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden transform animate-in zoom-in-95 duration-300 flex flex-col max-h-[90vh]">
                         <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-gray-50 shrink-0">
-                            <h2 className="text-xl font-bold text-gray-800">New Appointment</h2>
+                            <h2 className="text-xl font-bold text-gray-800">{isEditing ? 'Edit Appointment' : 'New Appointment'}</h2>
                             <button onClick={() => setIsAddModalOpen(false)} className="text-gray-400 hover:text-gray-600">
                                 <X size={24} />
                             </button>
                         </div>
-                        
+
                         <form onSubmit={handleAddAppointment} className="p-6 space-y-4 overflow-y-auto">
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-sm font-semibold text-gray-700 mb-1">Pet Name</label>
-                                    <input required type="text" className="w-full p-2.5 rounded-lg border border-gray-300 outline-none focus:ring-2 focus:ring-blue-100" 
-                                        value={newApt.petName} onChange={e => setNewApt({...newApt, petName: e.target.value})} />
+                                    <input required type="text" className="w-full p-2.5 rounded-lg border border-gray-300 outline-none focus:ring-2 focus:ring-blue-100"
+                                        value={formData.petName} onChange={e => setFormData({ ...formData, petName: e.target.value })} />
                                 </div>
                                 <div>
                                     <label className="block text-sm font-semibold text-gray-700 mb-1">Pet Type</label>
                                     <select className="w-full p-2.5 rounded-lg border border-gray-300 outline-none focus:ring-2 focus:ring-blue-100 bg-white"
-                                        value={newApt.petType} onChange={e => setNewApt({...newApt, petType: e.target.value})}>
+                                        value={formData.petType} onChange={e => setFormData({ ...formData, petType: e.target.value })}>
                                         <option>Dog</option>
                                         <option>Cat</option>
                                         <option>Bird</option>
@@ -291,13 +387,13 @@ export default function AppointmentsPage() {
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-sm font-semibold text-gray-700 mb-1">Breed</label>
-                                    <input type="text" className="w-full p-2.5 rounded-lg border border-gray-300 outline-none" 
-                                        value={newApt.breed} onChange={e => setNewApt({...newApt, breed: e.target.value})} />
+                                    <input type="text" className="w-full p-2.5 rounded-lg border border-gray-300 outline-none"
+                                        value={formData.breed} onChange={e => setFormData({ ...formData, breed: e.target.value })} />
                                 </div>
                                 <div>
                                     <label className="block text-sm font-semibold text-gray-700 mb-1">Gender</label>
                                     <select className="w-full p-2.5 rounded-lg border border-gray-300 outline-none bg-white"
-                                        value={newApt.gender} onChange={e => setNewApt({...newApt, gender: e.target.value})}>
+                                        value={formData.gender} onChange={e => setFormData({ ...formData, gender: e.target.value })}>
                                         <option>Male</option>
                                         <option>Female</option>
                                     </select>
@@ -305,40 +401,65 @@ export default function AppointmentsPage() {
                             </div>
                             <div className="pt-2">
                                 <label className="block text-sm font-semibold text-gray-700 mb-1">Reason for Visit</label>
-                                <input required type="text" className="w-full p-2.5 rounded-lg border border-gray-300 outline-none" 
-                                    value={newApt.visitReason} onChange={e => setNewApt({...newApt, visitReason: e.target.value})} />
+                                <select 
+                                    required 
+                                    className="w-full p-2.5 rounded-lg border border-gray-300 outline-none focus:ring-2 focus:ring-blue-100 bg-white"
+                                    value={formData.visitReason} 
+                                    onChange={e => setFormData({ ...formData, visitReason: e.target.value })}
+                                >
+                                    {services.length > 0 ? (
+                                        services.map(s => (
+                                            <option key={s.id} value={s.name}>{s.name}</option>
+                                        ))
+                                    ) : (
+                                        <option value="">{loading ? 'Loading services...' : 'No services available'}</option>
+                                    )}
+                                </select>
                             </div>
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-sm font-semibold text-gray-700 mb-1">Preferred Date</label>
-                                    <input required type="date" className="w-full p-2.5 rounded-lg border border-gray-300 outline-none" 
-                                        value={newApt.preferredDate} onChange={e => setNewApt({...newApt, preferredDate: e.target.value})} />
+                                    <input required type="date" className="w-full p-2.5 rounded-lg border border-gray-300 outline-none"
+                                        value={formData.preferredDate} onChange={e => setFormData({ ...formData, preferredDate: e.target.value })} />
                                 </div>
                                 <div>
                                     <label className="block text-sm font-semibold text-gray-700 mb-1">Preferred Time</label>
-                                    <input required type="time" className="w-full p-2.5 rounded-lg border border-gray-300 outline-none" 
-                                        value={newApt.preferredTime} onChange={e => setNewApt({...newApt, preferredTime: e.target.value})} />
+                                    <select
+                                        required
+                                        className="w-full p-2.5 rounded-lg border border-gray-300 outline-none bg-white"
+                                        value={formData.preferredTime}
+                                        onChange={e => setFormData({ ...formData, preferredTime: e.target.value })}
+                                    >
+                                        {allSlots.map(slot => (
+                                            <option key={slot.id} value={slot.time}>{slot.time}</option>
+                                        ))}
+                                    </select>
                                 </div>
                             </div>
                             <div className="border-t border-gray-100 pt-4">
                                 <label className="block text-sm font-semibold text-gray-700 mb-1">Owner Name</label>
-                                <input required type="text" className="w-full p-2.5 rounded-lg border border-gray-300 outline-none" 
-                                    value={newApt.ownerName} onChange={e => setNewApt({...newApt, ownerName: e.target.value})} />
+                                <input required type="text" className="w-full p-2.5 rounded-lg border border-gray-300 outline-none"
+                                    value={formData.ownerName} onChange={e => setFormData({ ...formData, ownerName: e.target.value })} />
                             </div>
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-sm font-semibold text-gray-700 mb-1">Email</label>
-                                    <input required type="email" className="w-full p-2.5 rounded-lg border border-gray-300 outline-none" 
-                                        value={newApt.email} onChange={e => setNewApt({...newApt, email: e.target.value})} />
+                                    <input required type="email" className="w-full p-2.5 rounded-lg border border-gray-300 outline-none"
+                                        value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value })} />
                                 </div>
                                 <div>
                                     <label className="block text-sm font-semibold text-gray-700 mb-1">Phone</label>
-                                    <input required type="tel" className="w-full p-2.5 rounded-lg border border-gray-300 outline-none" 
-                                        value={newApt.phone} onChange={e => setNewApt({...newApt, phone: e.target.value})} />
+                                    <input required type="tel" className="w-full p-2.5 rounded-lg border border-gray-300 outline-none"
+                                        value={formData.phone} onChange={e => setFormData({ ...formData, phone: e.target.value })} />
                                 </div>
                             </div>
-                            <button type="submit" className="w-full py-3 bg-primary text-white font-bold rounded-xl mt-4 shadow-lg hover:bg-[#009ad4] transition-all shrink-0">
-                                Create Appointment
+                            <button
+                                type="submit"
+                                disabled={isSaving}
+                                className="w-full py-3 bg-primary text-white font-bold rounded-xl mt-4 shadow-lg hover:bg-[#009ad4] transition-all shrink-0 uppercase tracking-wide disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                            >
+                                {isSaving && <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>}
+                                {isSaving ? 'Updating...' : (isEditing ? 'Update Appointment' : 'Create Appointment')}
                             </button>
                         </form>
                     </div>
@@ -373,7 +494,7 @@ export default function AppointmentsPage() {
                                 </div>
                                 <div className="p-3 bg-gray-50 rounded-xl">
                                     <span className="text-[10px] uppercase font-bold text-gray-400 block mb-1">Time</span>
-                                    <span className="font-bold text-gray-700">{selectedApt.preferred_time}</span>
+                                    <span className="font-bold text-gray-700">{formatTime(selectedApt.preferred_time)}</span>
                                 </div>
                             </div>
 
@@ -409,13 +530,14 @@ export default function AppointmentsPage() {
                 </div>
             )}
 
-            <ConfirmationModal 
+            <ConfirmationModal
                 isOpen={isConfirmOpen}
                 onClose={() => setIsConfirmOpen(false)}
                 onConfirm={handleCancelApt}
                 title="Cancel Appointment"
                 message="Are you sure you want to cancel this appointment? This action will notify the pet owner."
                 confirmText="Cancel Appointment"
+                isLoading={updatingId === aptToCancel}
             />
         </div>
     );

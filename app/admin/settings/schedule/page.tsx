@@ -1,15 +1,15 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { 
-    Calendar as CalendarIcon, 
-    Clock, 
-    ChevronLeft, 
-    ChevronRight, 
-    Filter, 
-    User, 
-    Plus, 
-    Trash2, 
+import {
+    Calendar as CalendarIcon,
+    Clock,
+    ChevronLeft,
+    ChevronRight,
+    Filter,
+    User,
+    Plus,
+    Trash2,
     Settings,
     X,
     ChevronDown,
@@ -27,7 +27,7 @@ export default function SchedulePage() {
     const [showDatePicker, setShowDatePicker] = useState(false);
     const [showFilters, setShowFilters] = useState(false);
     const [dayCounts, setDayCounts] = useState<Record<string, number>>({});
-    
+
     // Slot Management State
     const [showSlotManager, setShowSlotManager] = useState(false);
     const [newSlotTime, setNewSlotTime] = useState('');
@@ -156,7 +156,7 @@ export default function SchedulePage() {
         const hour = parseInt(slot.time.split(':')[0]);
         const isPM = slot.time.includes('PM') && hour !== 12;
         const actualHour = isPM ? hour + 12 : (hour === 12 && slot.time.includes('AM') ? 0 : hour);
-        
+
         if (timeFilter === 'morning') return actualHour < 12;
         if (timeFilter === 'afternoon') return actualHour >= 12;
         return true;
@@ -200,7 +200,7 @@ export default function SchedulePage() {
         <div className="space-y-6 sm:space-y-8 max-w-7xl mx-auto px-0 sm:px-0">
             <div className="flex flex-col lg:flex-row lg:items-center justify-between lg:justify-end gap-4 px-4 sm:px-0">
                 <div className="flex items-center bg-white rounded-xl p-1 border border-gray-100 shadow-sm relative w-full lg:w-auto">
-                    <button 
+                    <button
                         onClick={() => setShowDatePicker(!showDatePicker)}
                         className="flex-1 lg:flex-none flex items-center gap-2 px-3 sm:px-4 py-2 hover:bg-gray-50 rounded-lg transition-all min-w-[120px] sm:min-w-[160px]"
                     >
@@ -214,7 +214,7 @@ export default function SchedulePage() {
                             </span>
                         </div>
                     </button>
-                    
+
                     <div className="h-8 w-px bg-gray-100 mx-1 sm:mx-2"></div>
 
                     <div className="flex items-center pr-1">
@@ -228,7 +228,7 @@ export default function SchedulePage() {
 
                     {/* Smart Calendar Popover */}
                     {showDatePicker && (
-                        <CalendarPopover 
+                        <CalendarPopover
                             selectedDate={selectedDate}
                             onSelect={(date: string) => {
                                 setSelectedDate(date);
@@ -241,7 +241,7 @@ export default function SchedulePage() {
                 </div>
 
                 <div className="flex items-center gap-2 w-full lg:w-auto">
-                    <button 
+                    <button
                         onClick={() => setShowFilters(!showFilters)}
                         className={`flex-1 lg:flex-none flex items-center justify-center gap-2 lg:p-2.5 p-3 rounded-xl transition-all border relative shrink-0 ${showFilters ? 'bg-primary text-white border-primary shadow-lg shadow-blue-100' : 'bg-white text-gray-500 border-gray-100 hover:border-gray-200 shadow-sm'}`}
                     >
@@ -252,7 +252,7 @@ export default function SchedulePage() {
                         )}
                     </button>
 
-                    <button 
+                    <button
                         onClick={() => setShowSlotManager(!showSlotManager)}
                         className={`flex-1 lg:flex-none flex items-center justify-center gap-2 lg:p-2.5 p-3 rounded-xl transition-all border shrink-0 ${showSlotManager ? 'bg-gray-900 text-white border-gray-900 shadow-lg' : 'bg-white text-gray-500 border-gray-100 hover:border-gray-200 shadow-sm'}`}
                     >
@@ -261,18 +261,18 @@ export default function SchedulePage() {
                     </button>
                 </div>
             </div>
-             
-                {/* Filters Popover */}
-                {showFilters && (
-                    <FiltersPopover 
-                        vets={vets}
-                        selectedVets={selectedVets}
-                        toggleVet={toggleVet}
-                        timeFilter={timeFilter}
-                        setTimeFilter={setTimeFilter}
-                        onClose={() => setShowFilters(false)}
-                    />
-                )}
+
+            {/* Filters Popover */}
+            {showFilters && (
+                <FiltersPopover
+                    vets={vets}
+                    selectedVets={selectedVets}
+                    toggleVet={toggleVet}
+                    timeFilter={timeFilter}
+                    setTimeFilter={setTimeFilter}
+                    onClose={() => setShowFilters(false)}
+                />
+            )}
 
             {/* Slot Management - Integration in Flow */}
             {showSlotManager && (
@@ -288,19 +288,19 @@ export default function SchedulePage() {
                     </div>
 
                     <form onSubmit={handleAddSlot} className="flex gap-2 max-w-sm mb-6">
-                        <input 
-                            type="text" 
-                            placeholder="e.g. 09:30 AM" 
+                        <input
+                            type="text"
+                            placeholder="e.g. 09:30 AM"
                             className="flex-1 bg-gray-50 border border-gray-100 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-100 outline-none transition-all"
                             value={newSlotTime}
                             onChange={(e) => setNewSlotTime(e.target.value)}
                         />
-                        <button 
-                            type="submit" 
+                        <button
+                            type="submit"
                             disabled={savingSlot || !newSlotTime}
                             className="bg-primary text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-blue-600 disabled:opacity-50 transition-all flex items-center gap-2"
                         >
-                            {savingSlot ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Plus size={16} />} 
+                            {savingSlot ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Plus size={16} />}
                             Add
                         </button>
                     </form>
@@ -324,7 +324,7 @@ export default function SchedulePage() {
                             }).map(slot => (
                                 <div key={slot.id} className="group relative bg-gray-50 border border-gray-100 rounded-xl px-3 py-1.5 flex items-center gap-3 pr-2 shadow-sm hover:shadow-md transition-all">
                                     <span className="text-xs font-bold text-gray-700">{slot.time}</span>
-                                    <button 
+                                    <button
                                         onClick={() => handleDeleteSlot(slot.id)}
                                         disabled={deletingId === slot.id}
                                         className="p-1 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all disabled:opacity-50"
@@ -362,29 +362,28 @@ export default function SchedulePage() {
                                 const slotBookings = bookings.filter(b => {
                                     const matchedTime = normalizeTime(b.preferred_time) === normalizeTime(slot.time);
                                     if (!matchedTime) return false;
-                                    
+
                                     if (selectedVets.includes('all')) return true;
                                     if (!b.vet_id) return false;
                                     return selectedVets.includes(b.vet_id.toString());
                                 });
-                                
+
                                 return (
                                     <div key={slot.id} className="flex h-20 group hover:bg-gray-50/50 transition-colors">
                                         <div className="w-24 border-r border-gray-50 flex items-center justify-center bg-gray-50/20">
                                             <span className="text-xs font-bold text-gray-400 group-hover:text-primary transition-colors">{slot.time}</span>
                                         </div>
-                                        
+
                                         <div className="flex-1 flex gap-3 overflow-x-auto pb-1 scrollbar-hide snap-x no-scrollbar">
                                             {slotBookings.length > 0 ? (
                                                 slotBookings.map((booking) => (
-                                                    <div 
+                                                    <div
                                                         key={booking.id}
                                                         onClick={() => setSelectedBooking(booking)}
-                                                        className={`flex-none w-[200px] sm:w-[220px] snap-start h-full p-3 rounded-2xl border transition-all flex items-center justify-between gap-3 cursor-pointer group/card ${
-                                                            booking.status === 'confirmed' 
-                                                                ? 'bg-emerald-50/20 border-emerald-100/50 hover:bg-emerald-50/40' 
+                                                        className={`flex-none w-[200px] sm:w-[220px] snap-start h-full p-3 rounded-2xl border transition-all flex items-center justify-between gap-3 cursor-pointer group/card ${booking.status === 'confirmed'
+                                                                ? 'bg-emerald-50/20 border-emerald-100/50 hover:bg-emerald-50/40'
                                                                 : 'bg-white border-gray-100 shadow-sm hover:shadow-md hover:border-blue-100'
-                                                        }`}
+                                                            }`}
                                                     >
                                                         <div className="flex items-center gap-3 overflow-hidden">
                                                             <span className="text-xl group-hover/card:scale-110 transition-transform">{getIconForPet(booking.pet_type)}</span>
@@ -419,7 +418,7 @@ export default function SchedulePage() {
                     {/* Insights Card */}
                     <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
                         <h3 className="text-sm font-bold text-gray-800 uppercase tracking-widest mb-6 border-b border-gray-50 pb-4 flex items-center gap-2">
-                             Summary
+                            Summary
                         </h3>
                         {loading ? (
                             <SummarySkeleton />
@@ -430,7 +429,7 @@ export default function SchedulePage() {
                                         <div className="text-xs text-gray-500 font-bold uppercase tracking-tight">Total Bookings</div>
                                         <div className="text-2xl font-black text-gray-800">{filteredBookings.length}</div>
                                     </div>
-                                    
+
                                     <div className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-gray-100">
                                         <div className="text-xs text-gray-500 font-bold uppercase tracking-tight">Capacity Used</div>
                                         <div className="text-2xl font-black text-gray-800">{occupancyRate}%</div>
@@ -474,7 +473,7 @@ export default function SchedulePage() {
                             ))}
                             {bookings.filter(b => b.status === 'confirmed').length === 0 && (
                                 <div className="text-center py-10">
-                                     <p className="text-[10px] text-gray-300 font-bold uppercase italic tracking-widest">Queue Empty</p>
+                                    <p className="text-[10px] text-gray-300 font-bold uppercase italic tracking-widest">Queue Empty</p>
                                 </div>
                             )}
                         </div>
@@ -484,8 +483,8 @@ export default function SchedulePage() {
 
             {/* Booking Details Modal */}
             {selectedBooking && (
-                <BookingDetailsModal 
-                    booking={selectedBooking} 
+                <BookingDetailsModal
+                    booking={selectedBooking}
                     vets={vets}
                     onClose={() => setSelectedBooking(null)}
                     onUpdate={handleUpdateBooking}
@@ -559,7 +558,7 @@ function BookingDetailsModal({ booking, vets, onClose, onUpdate, isLoading, getI
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
             <div className="absolute inset-0 bg-gray-900/60 backdrop-blur-sm" onClick={onClose}></div>
-            
+
             <div className="relative bg-white w-full max-w-lg rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in-95 fade-in duration-200">
                 {/* Modal Header */}
                 <div className="p-8 pb-6 flex items-start justify-between">
@@ -570,11 +569,10 @@ function BookingDetailsModal({ booking, vets, onClose, onUpdate, isLoading, getI
                         <div>
                             <div className="flex items-center gap-3 mb-1">
                                 <h2 className="text-2xl font-black text-gray-800">{booking.pet_name}</h2>
-                                <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border ${
-                                    booking.status === 'confirmed' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
-                                    booking.status === 'pending' ? 'bg-amber-50 text-amber-600 border-amber-100' :
-                                    'bg-red-50 text-red-600 border-red-100'
-                                }`}>
+                                <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border ${booking.status === 'confirmed' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
+                                        booking.status === 'pending' ? 'bg-amber-50 text-amber-600 border-amber-100' :
+                                            'bg-red-50 text-red-600 border-red-100'
+                                    }`}>
                                     {booking.status}
                                 </span>
                             </div>
@@ -643,7 +641,7 @@ function BookingDetailsModal({ booking, vets, onClose, onUpdate, isLoading, getI
                     {/* Action Buttons */}
                     <div className="flex gap-3 pt-2">
                         {booking.status === 'confirmed' ? (
-                            <button 
+                            <button
                                 onClick={() => onUpdate(booking.id, { status: 'cancelled' })}
                                 disabled={isLoading}
                                 className="w-full py-4 text-xs font-black text-red-500 bg-red-50 rounded-2xl hover:bg-red-100 transition-all uppercase tracking-widest flex items-center justify-center gap-2"
@@ -652,14 +650,14 @@ function BookingDetailsModal({ booking, vets, onClose, onUpdate, isLoading, getI
                             </button>
                         ) : booking.status === 'pending' ? (
                             <>
-                                <button 
+                                <button
                                     onClick={() => onUpdate(booking.id, { status: 'cancelled' })}
                                     disabled={isLoading}
                                     className="flex-1 py-4 text-xs font-black text-gray-400 bg-gray-50 rounded-2xl hover:bg-red-50 hover:text-red-500 transition-all uppercase tracking-widest"
                                 >
                                     {isLoading ? <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" /> : 'Cancel'}
                                 </button>
-                                <button 
+                                <button
                                     onClick={() => onUpdate(booking.id, { status: 'confirmed' })}
                                     disabled={isLoading}
                                     className="flex-[2] py-4 text-xs font-black text-white bg-primary rounded-2xl hover:bg-blue-600 shadow-xl shadow-blue-100 transition-all uppercase tracking-widest flex items-center justify-center gap-2"
@@ -669,7 +667,7 @@ function BookingDetailsModal({ booking, vets, onClose, onUpdate, isLoading, getI
                                 </button>
                             </>
                         ) : (
-                            <button 
+                            <button
                                 onClick={() => onUpdate(booking.id, { status: 'pending' })}
                                 disabled={isLoading}
                                 className="w-full py-4 text-xs font-black text-primary bg-primary/5 rounded-2xl hover:bg-primary/10 transition-all uppercase tracking-widest"
@@ -686,17 +684,17 @@ function BookingDetailsModal({ booking, vets, onClose, onUpdate, isLoading, getI
 
 function CalendarPopover({ selectedDate, onSelect, dayCounts, onClose }: { selectedDate: string, onSelect: (date: string) => void, dayCounts: Record<string, number>, onClose: () => void }) {
     const [viewDate, setViewDate] = useState(new Date(selectedDate));
-    
+
     const year = viewDate.getFullYear();
     const month = viewDate.getMonth();
-    
+
     const firstDay = new Date(year, month, 1).getDay();
     const daysInMonth = new Date(year, month + 1, 0).getDate();
-    
+
     const days = [];
     for (let i = 0; i < firstDay; i++) days.push(null);
     for (let i = 1; i <= daysInMonth; i++) days.push(i);
-    
+
     const changeMonth = (delta: number) => {
         const next = new Date(viewDate);
         next.setMonth(next.getMonth() + delta);
@@ -731,7 +729,7 @@ function CalendarPopover({ selectedDate, onSelect, dayCounts, onClose }: { selec
             <div className="grid grid-cols-7 gap-1">
                 {days.map((day, i) => {
                     if (day === null) return <div key={`empty-${i}`} className="p-2"></div>;
-                    
+
                     const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
                     const count = dayCounts[dateStr] || 0;
                     const isSelected = dateStr === selectedDate;
@@ -741,11 +739,10 @@ function CalendarPopover({ selectedDate, onSelect, dayCounts, onClose }: { selec
                         <button
                             key={dateStr}
                             onClick={() => onSelect(dateStr)}
-                            className={`group relative flex flex-col items-center justify-center p-2 rounded-xl transition-all ${
-                                isSelected 
-                                    ? 'bg-primary text-white shadow-lg shadow-blue-100' 
+                            className={`group relative flex flex-col items-center justify-center p-2 rounded-xl transition-all ${isSelected
+                                    ? 'bg-primary text-white shadow-lg shadow-blue-100'
                                     : isToday ? 'bg-gray-100 text-gray-900 font-black' : 'hover:bg-gray-50 text-gray-600'
-                            }`}
+                                }`}
                         >
                             <span className="text-xs font-bold">{day}</span>
                             {count > 0 && (
@@ -759,7 +756,7 @@ function CalendarPopover({ selectedDate, onSelect, dayCounts, onClose }: { selec
             </div>
 
             <div className="mt-6 pt-4 border-t border-gray-50 flex items-center justify-between">
-                <button 
+                <button
                     onClick={() => onSelect(new Date().toISOString().split('T')[0])}
                     className="text-[10px] font-black text-primary uppercase tracking-widest hover:underline"
                 >
@@ -812,7 +809,7 @@ function FiltersPopover({ vets, selectedVets, toggleVet, timeFilter, setTimeFilt
                             <span>Display All</span>
                             {selectedVets.includes('all') && <div className="w-1.5 h-1.5 rounded-full bg-white"></div>}
                         </button>
-                        
+
                         {vets.map((v: any) => {
                             const isSelected = selectedVets.includes(v.id.toString());
                             return (
@@ -832,7 +829,7 @@ function FiltersPopover({ vets, selectedVets, toggleVet, timeFilter, setTimeFilt
             </div>
 
             <div className="mt-8 pt-6 border-t border-gray-50">
-                <button 
+                <button
                     onClick={onClose}
                     className="w-full bg-gray-900 text-white py-3 rounded-2xl text-xs font-black hover:bg-gray-800 transition-all shadow-lg shadow-gray-100"
                 >
