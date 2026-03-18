@@ -12,6 +12,7 @@ export default function VetsPage() {
     const [isConfirmOpen, setIsConfirmOpen] = useState(false);
     const [vetToDelete, setVetToDelete] = useState<number | null>(null);
     const [editingVetId, setEditingVetId] = useState<number | null>(null);
+    const [isSaving, setIsSaving] = useState(false);
     const [newVet, setNewVet] = useState({
         name: '',
         specialty: '',
@@ -62,6 +63,7 @@ export default function VetsPage() {
 
     const handleSaveVet = async (e: React.FormEvent) => {
         e.preventDefault();
+        setIsSaving(true);
         try {
             const url = '/api/vets';
             const method = isEditMode ? 'PATCH' : 'POST';
@@ -82,21 +84,28 @@ export default function VetsPage() {
             }
         } catch (error) {
             console.error('Failed to save vet', error);
+        } finally {
+            setIsSaving(false);
         }
     };
 
     const handleDeleteVet = async () => {
         if (!vetToDelete) return;
+        setIsSaving(true);
         try {
             const res = await fetch(`/api/vets?id=${vetToDelete}`, {
                 method: 'DELETE'
             });
 
             if (res.ok) {
+                setIsConfirmOpen(false);
+                setVetToDelete(null);
                 fetchVets();
             }
         } catch (error) {
             console.error('Failed to delete vet', error);
+        } finally {
+            setIsSaving(false);
         }
     };
 
@@ -255,9 +264,11 @@ export default function VetsPage() {
                             </div>
                             <button 
                                 type="submit"
-                                className="w-full py-3 bg-primary text-white font-bold rounded-xl mt-4 shadow-lg hover:bg-[#009ad4] transition-all"
+                                disabled={isSaving}
+                                className="w-full py-3 bg-primary text-white font-bold rounded-xl mt-4 shadow-lg hover:bg-[#009ad4] transition-all disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                             >
-                                {isEditMode ? 'Update Specialist' : 'Add Specialist'}
+                                {isSaving && <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>}
+                                {isSaving ? 'Processing...' : (isEditMode ? 'Update Specialist' : 'Add Specialist')}
                             </button>
                         </form>
                     </div>
@@ -271,6 +282,7 @@ export default function VetsPage() {
                 title="Delete Specialist"
                 message="Are you sure you want to remove this veterinarian? This action cannot be undone."
                 confirmText="Delete"
+                isLoading={isSaving}
             />
         </div>
     );

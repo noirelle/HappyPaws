@@ -8,11 +8,13 @@ export async function GET(request: Request) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const today = new Date().toISOString().split('T')[0];
+
     // Fetch Stats
     const { count: upcomingCount } = await supabase
         .from('bookings')
         .select('*', { count: 'exact', head: true })
-        .gte('preferred_date', new Date().toISOString())
+        .gte('preferred_date', today)
         .neq('status', 'cancelled');
 
     const { count: pendingCount } = await supabase
@@ -20,12 +22,17 @@ export async function GET(request: Request) {
         .select('*', { count: 'exact', head: true })
         .eq('status', 'pending');
 
-    // Recent activity
+    const { count: cancelledCount } = await supabase
+        .from('bookings')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'cancelled');
+
+    // Recent activity (increased limit for filtering)
     const { data: recentActivity } = await supabase
         .from('bookings')
         .select('*, vets(name)')
         .order('created_at', { ascending: false })
-        .limit(5);
+        .limit(50);
 
     // Total clients (distinct emails)
     const { count: totalClients } = await supabase
@@ -41,6 +48,7 @@ export async function GET(request: Request) {
     return NextResponse.json({
         upcomingCount,
         pendingCount,
+        cancelledCount: cancelledCount || 0,
         totalClients: totalClients || 0,
         activeVets: activeVets || 0,
         recentActivity

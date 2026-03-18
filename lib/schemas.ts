@@ -47,5 +47,30 @@ export const createRoleSchema = z.object({
     permissions: z.array(z.string()).optional()
 });
 
+export const serviceSchema = z.object({
+    id: z.number().optional(),
+    name: z.string().min(1, "Service name is required"),
+    description: z.string().optional(),
+    duration: z.string().optional(),
+    price: z.number().optional(),
+    is_active: z.boolean().default(true),
+    created_at: z.string().optional(),
+    icon_name: z.string().optional(),
+    image_url: z.string().optional()
+});
+
+export const carePackageSchema = z.object({
+    id: z.number().optional(),
+    icon: z.string().default('🐶'),
+    title: z.string().min(1, "Title is required"),
+    description: z.string().optional(),
+    discount: z.string().optional(),
+    color: z.string().optional(),
+    discount_color: z.string().optional(),
+    is_active: z.boolean().default(true),
+});
+
 export type Booking = z.infer<typeof bookingSchema>;
 export type Vet = z.infer<typeof vetSchema>;
+export type Service = z.infer<typeof serviceSchema>;
+export type CarePackage = z.infer<typeof carePackageSchema>;

@@ -15,6 +15,8 @@ const ROUTE_CONFIG: Record<string, { title: string, subtitle: string }> = {
     '/admin/roles': { title: 'Role Management', subtitle: 'Configure system roles and granular permissions.' },
     '/admin/settings': { title: 'System Settings', subtitle: 'Configure global application preferences and integrations.' },
     '/admin/settings/schedule': { title: 'Clinic Schedule', subtitle: 'Manage live timeline and availability.' },
+    '/admin/settings/services': { title: 'Clinic Services', subtitle: 'Manage dynamic services and offerings.' },
+    '/admin/settings/packages': { title: 'Total Care Packages', subtitle: 'Manage bundles and promotional offers.' },
     '/admin/settings/widget/faq': { title: 'Widget FAQ Management', subtitle: 'Manage frequently asked questions for the booking widget.' },
 };
 
@@ -69,14 +71,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
                 <div className="px-4 sm:px-8 pt-8">
                     <div className="max-w-7xl mx-auto w-full">
-                        <header className="mb-8">
+                        <div className="mb-8">
                             <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 transition-all duration-200">
                                 {currentConfig.title}
                             </h1>
                             <p className="text-gray-500 mt-1 transition-all duration-200">
                                 {currentConfig.subtitle}
                             </p>
-                        </header>
+                        </div>
                     </div>
                 </div>
 

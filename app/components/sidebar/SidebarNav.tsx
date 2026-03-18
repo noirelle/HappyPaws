@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Calendar, Stethoscope, Users, CalendarClock, MessageSquare, ChevronDown, ChevronRight, MessageCircleQuestion } from 'lucide-react';
+import { LayoutDashboard, Calendar, Stethoscope, Users, CalendarClock, MessageSquare, ChevronDown, ChevronRight, MessageCircleQuestion, Gift } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
 
@@ -59,7 +59,16 @@ export default function SidebarNav({ sidebarOpen }: SidebarNavProps) {
                     name: 'Schedule', href: '/admin/settings/schedule', icon: (
                         <CalendarClock size={20} />
                     )
-
+                },
+                {
+                    name: 'Services', href: '/admin/settings/services', icon: (
+                        <Stethoscope size={20} />
+                    )
+                },
+                {
+                    name: 'Packages', href: '/admin/settings/packages', icon: (
+                        <Gift size={20} />
+                    )
                 },
                 {
                     name: 'Widget',
