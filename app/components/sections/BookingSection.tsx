@@ -7,24 +7,31 @@ import { ChevronLeft, ChevronRight, Check } from 'lucide-react';
 export default function BookingSection() {
   const [selectedDateIndex, setSelectedDateIndex] = useState<number>(0);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
-  const [dates, setDates] = useState<{ dayName: string; dateNum: number; fullDate: string; displayMonth: string; year: number }[]>([]);
+  const [dates, setDates] = useState<{ dayName: string; dateNum: number; fullDate: string; displayMonth: string; year: number; isPast: boolean }[]>([]);
   const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [availableSlots, setAvailableSlots] = useState<{ time: string; isTaken: boolean }[]>([]);
+  const [showMoreGroups, setShowMoreGroups] = useState<Record<string, boolean>>({});
+  const [loading, setLoading] = useState(false);
 
   // Function to generate dates for a selected month
   const generateDatesForMonth = (baseDate: Date) => {
     const nextDays = [];
     const daysMap = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
-    const startOffset = 0; // Start from today if it's current month, or 1st if future
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
     for (let i = 0; i < 7; i++) {
       const d = new Date(baseDate);
       d.setDate(baseDate.getDate() + i);
+      const isPast = d < today;
+      
       nextDays.push({
         dayName: daysMap[d.getDay()],
         dateNum: d.getDate(),
         fullDate: d.toISOString().split('T')[0],
         displayMonth: d.toLocaleString('default', { month: 'long' }),
-        year: d.getFullYear()
+        year: d.getFullYear(),
+        isPast
       });
     }
     return nextDays;
@@ -34,6 +41,33 @@ export default function BookingSection() {
   useEffect(() => {
     setDates(generateDatesForMonth(new Date()));
   }, []);
+
+  // Fetch availability when selected date changes
+  useEffect(() => {
+    const fetchAvailability = async () => {
+      const selectedDate = dates[selectedDateIndex]?.fullDate;
+      if (!selectedDate) return;
+
+      setLoading(true);
+      try {
+        const res = await fetch(`/api/availability?date=${selectedDate}`);
+        if (res.ok) {
+          const data = await res.json();
+          setAvailableSlots(data);
+          // Auto-select first available or clear if current becomes taken
+          if (selectedTime && data.find((s: any) => s.time === selectedTime)?.isTaken) {
+            setSelectedTime(null);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to fetch availability', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAvailability();
+  }, [selectedDateIndex, dates]);
 
   const changeMonth = (offset: number) => {
     const newMonth = new Date(currentMonth);
@@ -112,7 +146,8 @@ export default function BookingSection() {
                   setCurrentMonth(d);
                   setDates(generateDatesForMonth(d));
                 }}
-                className="w-10 h-10 flex items-center justify-center rounded-full bg-gray-50 text-gray-600 hover:bg-gray-100 hover:text-primary transition-colors flex-shrink-0"
+                disabled={currentMonth <= new Date()}
+                className="w-10 h-10 flex items-center justify-center rounded-full bg-gray-50 text-gray-600 hover:bg-gray-100 hover:text-primary transition-colors flex-shrink-0 disabled:opacity-30 disabled:cursor-not-allowed"
                 title="Previous Week"
               >
                 <ChevronLeft size={20} />
@@ -123,11 +158,14 @@ export default function BookingSection() {
                 {dates.map((d, i) => (
                   <div
                     key={i}
-                    className={`flex flex-col items-center justify-center p-1.5 sm:p-2 rounded-xl cursor-pointer transition-all duration-200 border ${selectedDateIndex === i
-                      ? 'bg-primary text-white shadow-lg scale-110 border-primary z-10'
-                      : 'text-gray-500 bg-white border-transparent hover:bg-gray-50'
+                    className={`flex flex-col items-center justify-center p-1.5 sm:p-2 rounded-xl cursor-pointer transition-all duration-200 border ${
+                      d.isPast 
+                        ? 'opacity-30 cursor-not-allowed border-transparent grayscale'
+                        : selectedDateIndex === i
+                        ? 'bg-primary text-white shadow-lg scale-110 border-primary z-10'
+                        : 'text-gray-500 bg-white border-transparent hover:bg-gray-50'
                       }`}
-                    onClick={() => setSelectedDateIndex(i)}
+                    onClick={() => !d.isPast && setSelectedDateIndex(i)}
                   >
                     <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider opacity-70 mb-0.5">{d.dayName}</span>
                     <span className="font-bold text-base sm:text-lg">{d.dateNum}</span>
@@ -150,22 +188,75 @@ export default function BookingSection() {
 
             </div>
 
-            <div className="my-5">
-              <p className="text-sm text-gray-400 mb-2 text-left">Available Times</p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {times.map((t) => (
-                  <div
-                    key={t}
-                    className={`p-2 rounded-lg text-center cursor-pointer border transition-colors ${selectedTime === t
-                      ? 'bg-primary text-white border-primary font-semibold'
-                      : 'text-primary border-primary bg-transparent hover:bg-blue-50'
-                      }`}
-                    onClick={() => setSelectedTime(t)}
-                  >
-                    {t}
-                  </div>
-                ))}
-              </div>
+            <div className="my-5 text-left">
+              <p className="text-sm text-gray-400 mb-4">Available Times</p>
+              
+              {loading ? (
+                <div className="py-4 text-center text-gray-400 text-sm animate-pulse bg-gray-50 rounded-xl">
+                  Checking availability...
+                </div>
+              ) : availableSlots.length === 0 ? (
+                <div className="py-8 text-center text-gray-400 text-sm italic bg-gray-50 rounded-xl border border-dashed border-gray-200">
+                  No slots found for this date.
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  {Object.entries(
+                    availableSlots.reduce((acc, slot) => {
+                      const hour = parseInt(slot.time.split(':')[0]);
+                      const isPM = slot.time.includes('PM');
+                      const absoluteHour = isPM && hour !== 12 ? hour + 12 : (!isPM && hour === 12 ? 0 : hour);
+                      
+                      let group = 'Morning';
+                      if (absoluteHour >= 12 && absoluteHour < 17) group = 'Afternoon';
+                      else if (absoluteHour >= 17) group = 'Evening';
+                      
+                      if (!acc[group]) acc[group] = [];
+                      acc[group].push(slot);
+                      return acc;
+                    }, {} as Record<string, typeof availableSlots>)
+                  ).map(([group, slots]) => {
+                    const isExpanded = showMoreGroups[group];
+                    const visibleSlots = isExpanded ? slots : slots.slice(0, 4);
+                    const hasMore = slots.length > 4;
+
+                    return (
+                      <div key={group} className="space-y-3">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-bold uppercase tracking-widest text-gray-400">{group}</span>
+                          <div className="h-[1px] bg-gray-100 flex-1"></div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                          {visibleSlots.map((slot) => (
+                            <button
+                              key={slot.time}
+                              disabled={slot.isTaken}
+                              className={`p-2.5 rounded-xl text-center border transition-all text-sm ${
+                                selectedTime === slot.time
+                                ? 'bg-primary text-white border-primary font-bold shadow-md'
+                                : slot.isTaken
+                                ? 'bg-gray-50 text-gray-300 border-gray-100 cursor-not-allowed opacity-60'
+                                : 'text-gray-700 border-gray-200 bg-white hover:border-primary hover:text-primary active:scale-95'
+                              }`}
+                              onClick={() => setSelectedTime(slot.time)}
+                            >
+                              {slot.time} {slot.isTaken && '(Full)'}
+                            </button>
+                          ))}
+                        </div>
+                        {hasMore && (
+                          <button 
+                            onClick={() => setShowMoreGroups(prev => ({ ...prev, [group]: !isExpanded }))}
+                            className="text-xs font-bold text-primary hover:underline mt-1 flex items-center gap-1"
+                          >
+                            {isExpanded ? 'Show Less' : `+${slots.length - 4} more slots`}
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
 
             {/* Display Selected Date/Time clearly */}

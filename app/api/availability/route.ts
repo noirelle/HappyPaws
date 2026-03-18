@@ -18,6 +18,16 @@ export async function GET(request: Request) {
 
         if (slotsError) throw slotsError;
 
+        // 1.5 Fetch total available vets count (for capacity check)
+        const { count: availableVetsCount, error: vetsError } = await supabase
+            .from('vets')
+            .select('*', { count: 'exact', head: true })
+            .eq('status', 'Available');
+
+        if (vetsError) throw vetsError;
+
+        const totalCapacity = availableVetsCount || 0;
+
         // 2. Fetch bookings for that date
         let bookingsQuery = supabase
             .from('bookings')
@@ -36,10 +46,6 @@ export async function GET(request: Request) {
         const normalizeTime = (t: string) => t ? t.replace(/^0/, '') : '';
 
         // 3. Mark slots as taken
-        // Logic: A slot is taken if there's a booking for that time+vet
-        // If vetId is 'any', a slot is only taken if it's "Full" (e.g., all available vets booked)
-        // For simplicity: If vetId is specific, check that vet. If vetId is 'any', check if ANY vet is available.
-        
         const availability = slots.map(slot => {
             const bookingsAtTime = bookings?.filter(b => normalizeTime(b.preferred_time) === normalizeTime(slot.time)) || [];
             
@@ -47,10 +53,8 @@ export async function GET(request: Request) {
             if (vetId && vetId !== 'any') {
                 isTaken = bookingsAtTime.some(b => b.vet_id === parseInt(vetId));
             } else {
-                // If vetId is 'any', we might want to check total capacity
-                // For now, let's just mark it as taken if there's ANY booking for that time 
-                // to be safe, or we could fetch total vet count.
-                isTaken = bookingsAtTime.length > 0; 
+                // If vetId is 'any', it's taken ONLY if we hit total capacity (all vets booked)
+                isTaken = totalCapacity > 0 ? bookingsAtTime.length >= totalCapacity : true; 
             }
 
             return {
