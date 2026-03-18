@@ -4,12 +4,12 @@ import { Star, Trophy, Building2, Heart } from 'lucide-react';
 
 export default function SocialProofSection() {
   const reviews = [
-    { name: "Sarah & Max", text: "Happy Paws saved Max's leg after his accident. Forever grateful!", pet: "/puppy_kit.png" },
+    { name: "Sarah & Max", text: "J.A.A. Clinic saved Max's leg after his accident. Forever grateful!", pet: "/puppy_kit.png" },
     { name: "John & Bella", text: "The cleanest, friendliest clinic in town. Bella actually likes going here.", pet: "/senior_pet.png" },
     { name: "Emily & Fluffy", text: "Dr. Smith is a miracle worker with rabbits. Highly recommended.", pet: "/dental_care.png" },
     { name: "Mike & Rocky", text: "Great prices on the wellness plan. It pays for itself.", pet: "/hero.png" },
     // Repeat for infinite scroll illusion
-    { name: "Sarah & Max", text: "Happy Paws saved Max's leg after his accident. Forever grateful!", pet: "/puppy_kit.png" },
+    { name: "Sarah & Max", text: "J.A.A. Clinic saved Max's leg after his accident. Forever grateful!", pet: "/puppy_kit.png" },
     { name: "John & Bella", text: "The cleanest, friendliest clinic in town. Bella actually likes going here.", pet: "/senior_pet.png" },
   ];
 

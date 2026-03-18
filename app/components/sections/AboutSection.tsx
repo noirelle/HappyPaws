@@ -37,7 +37,7 @@ export default function AboutSection() {
                         </h2>
 
                         <p className="text-lg text-gray-600 mb-6 leading-relaxed">
-                            Founded in 2010, Happy Paws began with a simple mission: to provide the same level of medical care for pets that we expect for ourselves.
+                            Founded in 2010, J.A.A. Clinic began with a simple mission: to provide the same level of medical care for pets that we expect for ourselves.
                         </p>
 
                         <p className="text-lg text-gray-600 mb-8 leading-relaxed">

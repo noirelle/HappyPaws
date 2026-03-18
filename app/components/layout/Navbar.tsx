@@ -33,7 +33,7 @@ export default function Navbar() {
             🐾
           </div>
           <span className="text-xl font-extrabold tracking-tight text-gray-800">
-            Happy<span className="text-primary">Paws</span>
+            J.A.A.<span className="text-primary"> Clinic</span>
           </span>
         </a>
 

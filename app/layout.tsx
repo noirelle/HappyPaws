@@ -6,7 +6,7 @@ import { WidgetProvider } from "./providers/WidgetProvider";
 
 
 export const metadata: Metadata = {
-  title: "Happy Paws Vet Clinic",
+  title: "J.A.A. Clinic 🐾",
   description: "Your Pet’s Health is Our Top Priority",
 };
 

@@ -17,7 +17,7 @@ export default function SidebarLogo({ sidebarOpen }: SidebarLogoProps) {
                 </div>
 
                 <span className={`text-lg font-extrabold tracking-tight text-gray-800 transition-all duration-300 ${!sidebarOpen && 'lg:w-0 lg:opacity-0 lg:overflow-hidden'}`}>
-                    Happy<span className="text-primary">Paws</span>
+                    J.A.A.<span className="text-primary"> Clinic</span>
                 </span>
             </Link>
         </div>

@@ -25,7 +25,7 @@ export default function Footer() {
       <div className="max-w-[1200px] mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10 relative z-20">
         {/* Brand Column */}
         <div>
-          <h3 className="text-primary mb-6 text-xl uppercase tracking-wider font-bold">Happy Paws 🐾</h3>
+          <h3 className="text-primary mb-6 text-xl uppercase tracking-wider font-bold">J.A.A. Clinic 🐾</h3>
           <p className="text-gray-400 leading-relaxed mb-5 text-sm">
             Dedicated to providing the highest standard of veterinary care with a gentle touch. Your pet is family here.
           </p>
@@ -59,7 +59,7 @@ export default function Footer() {
           <div className="space-y-3 text-gray-300">
             <p className="flex items-center gap-3"><span className="text-accent"><MapPin size={18} /></span> 123 Paws Avenue, Pet City, FL 33101</p>
             <p className="flex items-center gap-3"><span className="text-accent"><Phone size={18} /></span> (555) 123-4567</p>
-            <p className="flex items-center gap-3"><span className="text-accent"><Mail size={18} /></span> hello@happypaws.com</p>
+            <p className="flex items-center gap-3"><span className="text-accent"><Mail size={18} /></span> hello@jaavetclinic.com</p>
             <p className="flex items-start gap-3">
               <span className="text-accent mt-1"><Clock size={18} /></span>
               <span>Mon-Sat: 8am - 8pm<br />Sun: 10am - 4pm</span>
@@ -89,7 +89,7 @@ export default function Footer() {
 
       <div className="mt-20 pt-5 border-t border-[#333] text-center text-gray-500 text-sm flex flex-col md:flex-row justify-between items-center gap-5">
         <div className="max-w-[1200px] mx-auto w-full flex flex-col md:flex-row justify-between items-center">
-          <p>© 2026 Happy Paws Vet Clinic. All Rights Reserved.</p>
+          <p>© 2026 J.A.A. Clinic. All Rights Reserved.</p>
           <div className="flex gap-5 mt-4 md:mt-0">
             <a href="#" className="hover:text-primary">Privacy Policy</a>
             <a href="#" className="hover:text-primary">Terms of Service</a>

@@ -23,8 +23,8 @@ export default function GlobalLoader() {
             </div>
 
             <div className="mt-8 flex flex-col items-center gap-2">
-                <h3 className="text-2xl font-bold text-gray-800 tracking-wider">
-                    Happy<span className="text-primary">Paws</span>
+                <h3 className="text-2xl font-bold text-gray-800 tracking-wider text-center">
+                    J.A.A. <span className="text-primary">Clinic</span>
                 </h3>
                 <div className="flex gap-1.5">
                     <div className="w-2.5 h-2.5 bg-primary rounded-full animate-[bounce_1s_infinite_0ms]"></div>
