@@ -65,8 +65,7 @@ export async function POST(request: Request) {
                     status: validation.data.status,
                     vet_id: validation.data.vet_id,
                 }
-            ])
-            .select();
+            ]);
 
         if (error) {
             console.error('Supabase Error:', error);
